@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "my-expo-app",
-    "slug": "my-expo-app",
+    "name": "traveler",
+    "slug": "traveler",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myexpoapp",
+    "scheme": "traveler",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
