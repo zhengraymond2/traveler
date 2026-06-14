@@ -187,16 +187,34 @@ function createLocationWriter(database: AppDatabase): LocationWriter {
 }
 
 function normalizeLocationUpdate(input: UpdateLocationInput) {
-  return {
-    name: normalizeText(input.name),
-    latitude: input.latitude,
-    longitude: input.longitude,
-    googleMapsUrl: normalizeText(input.googleMapsUrl),
-    instagramUrl: normalizeText(input.instagramUrl),
-    notes: normalizeText(input.notes),
-    country: normalizeText(input.country),
-    category: normalizeText(input.category),
-  };
+  const update: Partial<NewLocation> = {};
+
+  if ('name' in input) {
+    update.name = normalizeText(input.name);
+  }
+  if ('latitude' in input) {
+    update.latitude = input.latitude;
+  }
+  if ('longitude' in input) {
+    update.longitude = input.longitude;
+  }
+  if ('googleMapsUrl' in input) {
+    update.googleMapsUrl = normalizeText(input.googleMapsUrl);
+  }
+  if ('instagramUrl' in input) {
+    update.instagramUrl = normalizeText(input.instagramUrl);
+  }
+  if ('notes' in input) {
+    update.notes = normalizeText(input.notes);
+  }
+  if ('country' in input) {
+    update.country = normalizeText(input.country);
+  }
+  if ('category' in input) {
+    update.category = normalizeText(input.category);
+  }
+
+  return update;
 }
 
 function normalizeText(value: string | undefined) {
