@@ -1,26 +1,74 @@
+import { useDragSelect } from '@osamaq/drag-select';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import type { TapGesture } from 'react-native-gesture-handler';
 import { Button, Card, Dialog, Portal, Surface, Text, TextInput, useTheme } from 'react-native-paper';
+import Animated, { useAnimatedRef, useAnimatedScrollHandler } from 'react-native-reanimated';
 
 import { useDatabase } from '@/db/database-provider';
 import type { Location } from '@/db/schema';
 
 const unknownCountryLabel = 'Unknown';
+const rowHeight = 130;
+const rowGap = 1;
+const horizontalContentPadding = 16;
+const topContentPadding = 16;
 
 export default function SavedCountryScreen() {
   const theme = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
   const { reader, writer } = useDatabase();
   const params = useLocalSearchParams<{ country?: string }>();
   const country = normalizeParam(params.country);
   const [locations, setLocations] = React.useState<Location[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
-  const [isEditing, setIsEditing] = React.useState(false);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(() => new Set());
   const [isMoveDialogVisible, setIsMoveDialogVisible] = React.useState(false);
   const [targetAlbum, setTargetAlbum] = React.useState('');
   const selectedCount = selectedIds.size;
+  const flatListRef = useAnimatedRef<FlatList<Location>>();
+  const rowWidth = Math.max(1, windowWidth - horizontalContentPadding * 2);
+
+  const { gestures, onScroll, selection } = useDragSelect({
+    data: locations,
+    key: 'id',
+    list: {
+      animatedRef: flatListRef,
+      numColumns: 1,
+      rowGap,
+      itemSize: { height: rowHeight, width: rowWidth },
+      contentInset: {
+        top: topContentPadding,
+        left: horizontalContentPadding,
+        right: horizontalContentPadding,
+      },
+    },
+    longPressGesture: {
+      enabled: true,
+      minDurationMs: 260,
+    },
+    onItemPress: (id) => {
+      router.push({ pathname: '/saved/location/[id]', params: { id } });
+    },
+    onItemSelected: (id) => {
+      setSelectedIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+        nextIds.add(id);
+        return nextIds;
+      });
+    },
+    onItemDeselected: (id) => {
+      setSelectedIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+        nextIds.delete(id);
+        return nextIds;
+      });
+    },
+  });
+  const scrollHandler = useAnimatedScrollHandler({ onScroll });
 
   const loadLocations = React.useCallback(async () => {
     setIsLoading(true);
@@ -75,30 +123,10 @@ export default function SavedCountryScreen() {
     }, [country, reader])
   );
 
-  function toggleEditing() {
-    setIsEditing((currentValue) => {
-      if (currentValue) {
-        setSelectedIds(new Set());
-      }
-      return !currentValue;
-    });
-  }
-
-  function toggleSelected(id: string) {
-    setSelectedIds((currentIds) => {
-      const nextIds = new Set(currentIds);
-      if (nextIds.has(id)) {
-        nextIds.delete(id);
-      } else {
-        nextIds.add(id);
-      }
-      return nextIds;
-    });
-  }
-
   async function handleDeleteSelected() {
     const ids = Array.from(selectedIds);
     await Promise.all(ids.map((id) => writer.deleteLocation(id)));
+    selection.clear();
     setSelectedIds(new Set());
     await loadLocations();
   }
@@ -112,6 +140,7 @@ export default function SavedCountryScreen() {
 
     const ids = Array.from(selectedIds);
     await Promise.all(ids.map((id) => writer.updateLocation(id, { country: album })));
+    selection.clear();
     setSelectedIds(new Set());
     setTargetAlbum('');
     setIsMoveDialogVisible(false);
@@ -124,31 +153,23 @@ export default function SavedCountryScreen() {
         options={{
           title: country || 'Saved Locations',
           headerBackButtonDisplayMode: 'minimal',
-          headerRight: () => (
-            <Button compact mode="text" onPress={toggleEditing}>
-              {isEditing ? 'Done' : 'Edit'}
-            </Button>
-          ),
         }}
       />
-      <ScrollView
-        style={[styles.scrollView, { backgroundColor: theme.colors.background }]}
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, isEditing && selectedCount > 0 && styles.contentWithActionBar]}>
+      <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
         {errorMessage ? (
-          <Text selectable variant="bodyMedium" style={{ color: theme.colors.error }}>
+          <Text selectable variant="bodyMedium" style={[styles.statusText, { color: theme.colors.error }]}>
             {errorMessage}
           </Text>
         ) : null}
 
         {isLoading ? (
-          <Text selectable variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+          <Text selectable variant="bodyMedium" style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>
             Loading saved locations...
           </Text>
         ) : null}
 
         {!isLoading && locations.length === 0 ? (
-          <Card mode="outlined" style={styles.card}>
+          <Card mode="outlined" style={styles.emptyCard}>
             <Card.Content>
               <Text selectable variant="bodyMedium">
                 No saved locations for this country yet.
@@ -157,48 +178,31 @@ export default function SavedCountryScreen() {
           </Card>
         ) : null}
 
-        {locations.map((location, index) => (
-          <React.Fragment key={location.id}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.locationRow,
-                pressed && styles.locationRowPressed,
-                isEditing && styles.locationRowDimmed,
-                isEditing && selectedIds.has(location.id) && styles.locationRowSelected,
-              ]}
-              onPress={() => {
-                if (isEditing) {
-                  toggleSelected(location.id);
-                } else {
-                  router.push({ pathname: '/saved/location/[id]', params: { id: location.id } });
-                }
-              }}>
-              <View style={styles.locationRowContent}>
-                <View style={styles.locationText}>
-                  <Text selectable variant="titleMedium" numberOfLines={1} style={styles.locationTitle}>
-                    {location.name || 'Untitled location'}
-                  </Text>
-                  <Text selectable variant="bodyMedium" numberOfLines={2} style={styles.locationNotes}>
-                    {location.notes || 'No notes saved.'}
-                  </Text>
-                  <Text
-                    selectable
-                    variant="labelMedium"
-                    numberOfLines={1}
-                    style={{ color: theme.colors.onSurfaceVariant }}>
-                    {formatLocationCaption(location)}
-                  </Text>
-                </View>
-                {isEditing ? <SelectionControl selected={selectedIds.has(location.id)} /> : null}
-              </View>
-            </Pressable>
-            {index < locations.length - 1 ? <View style={styles.cardSpacer} /> : null}
-          </React.Fragment>
-        ))}
-      </ScrollView>
+        <GestureDetector gesture={gestures.panHandler}>
+          <Animated.FlatList
+            ref={flatListRef}
+            data={locations}
+            keyExtractor={(item) => item.id}
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
+            contentInsetAdjustmentBehavior="automatic"
+            contentContainerStyle={[styles.content, selectedCount > 0 && styles.contentWithActionBar]}
+            ItemSeparatorComponent={RowSeparator}
+            renderItem={({ item, index }) => (
+              <LocationRow
+                location={item}
+                isSelectionActive={selectedCount > 0}
+                isSelected={selectedIds.has(item.id)}
+                itemGesture={gestures.createItemPressHandler(item.id, index)}
+                captionColor={theme.colors.onSurfaceVariant}
+              />
+            )}
+          />
+        </GestureDetector>
+      </View>
 
       <Portal>
-        {isEditing && selectedCount > 0 ? (
+        {selectedCount > 0 ? (
           <Surface mode="elevated" style={styles.floatingActionBar}>
             <Text selectable={false} variant="labelLarge">
               {selectedCount} selected
@@ -234,6 +238,45 @@ export default function SavedCountryScreen() {
   );
 }
 
+type LocationRowProps = {
+  captionColor: string;
+  isSelectionActive: boolean;
+  isSelected: boolean;
+  itemGesture: TapGesture;
+  location: Location;
+};
+
+function LocationRow({ captionColor, isSelectionActive, isSelected, itemGesture, location }: LocationRowProps) {
+  return (
+    <GestureDetector gesture={itemGesture}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.locationRow,
+          pressed && styles.locationRowPressed,
+          isSelectionActive && styles.locationRowDimmed,
+          isSelectionActive && isSelected && styles.locationRowSelected,
+        ]}>
+        <View style={styles.locationText}>
+          <Text selectable variant="titleMedium" numberOfLines={1} style={styles.locationTitle}>
+            {location.name || 'Untitled location'}
+          </Text>
+          <Text selectable variant="bodyMedium" numberOfLines={2} style={styles.locationNotes}>
+            {location.notes || 'No notes saved.'}
+          </Text>
+          <Text selectable variant="labelMedium" numberOfLines={1} style={{ color: captionColor }}>
+            {formatLocationCaption(location)}
+          </Text>
+        </View>
+        {isSelectionActive ? <SelectionControl selected={isSelected} /> : null}
+      </Pressable>
+    </GestureDetector>
+  );
+}
+
+function RowSeparator() {
+  return <View style={styles.cardSpacer} />;
+}
+
 function SelectionControl({ selected }: { selected: boolean }) {
   return (
     <View style={[styles.selectionControl, selected && styles.selectionControlSelected]}>
@@ -261,8 +304,12 @@ function formatLocationCaption(location: Location) {
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
+  screen: {
     flex: 1,
+  },
+  statusText: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   content: {
     padding: 16,
@@ -288,14 +335,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  card: {
+  emptyCard: {
+    margin: 16,
     borderRadius: 8,
   },
   locationRow: {
     width: '100%',
     height: 130,
     backgroundColor: '#ffffff',
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
     paddingHorizontal: 16,
   },
   locationRowPressed: {
@@ -308,13 +358,8 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   cardSpacer: {
-    height: 1,
+    height: rowGap,
     backgroundColor: '#ffffff',
-  },
-  locationRowContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
   },
   locationText: {
     flex: 1,
