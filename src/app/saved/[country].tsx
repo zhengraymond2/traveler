@@ -49,7 +49,12 @@ export default function SavedCountryScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: country || 'Saved Locations' }} />
+      <Stack.Screen
+        options={{
+          title: country || 'Saved Locations',
+          headerBackButtonDisplayMode: 'minimal',
+        }}
+      />
       <ScrollView
         style={[styles.scrollView, { backgroundColor: theme.colors.background }]}
         contentInsetAdjustmentBehavior="automatic"

@@ -1,7 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import * as React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
-import { Card, Chip, Text, useTheme } from 'react-native-paper';
+import { Card, Divider, List, Text, useTheme } from 'react-native-paper';
 
 import { useDatabase } from '@/db/database-provider';
 import type { Location } from '@/db/schema';
@@ -52,7 +52,6 @@ export default function SavedLocationsScreen() {
       style={[styles.scrollView, { backgroundColor: theme.colors.background }]}
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={styles.content}>
-      
       {errorMessage ? (
         <Text selectable variant="bodyMedium" style={{ color: theme.colors.error }}>
           {errorMessage}
@@ -75,15 +74,15 @@ export default function SavedLocationsScreen() {
         </Card>
       ) : null}
 
-      {countries.map((country) => (
-        <Chip
-          key={country}
-          mode="flat"
-          compact={false}
-          style={styles.countryChip}
-          onPress={() => router.push({ pathname: '/saved/[country]', params: { country } })}>
-          {country}
-        </Chip>
+      {countries.map((country, index) => (
+        <React.Fragment key={country}>
+          <List.Item
+            title={country}
+            style={styles.countryRow}
+            onPress={() => router.push({ pathname: '/saved/[country]', params: { country } })}
+          />
+          {index < countries.length - 1 ? <Divider style={styles.countryDivider} /> : null}
+        </React.Fragment>
       ))}
     </ScrollView>
   );
@@ -98,8 +97,13 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
-  countryChip: {
-    alignSelf: 'flex-start',
+  countryRow: {
+    borderRadius: 8,
+    backgroundColor: '#fffbff',
+  },
+  countryDivider: {
+    backgroundColor: '#d8d8d8',
+    height: StyleSheet.hairlineWidth,
   },
   emptyCard: {
     borderRadius: 8,
