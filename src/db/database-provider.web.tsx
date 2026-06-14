@@ -2,18 +2,46 @@ import * as React from 'react';
 
 import type { LocationRepository } from './repository';
 
-const DatabaseContext = React.createContext<LocationRepository | null>(null);
+const webRepository: LocationRepository = {
+  reader: {
+    async listLocations() {
+      return [];
+    },
+    async listLocationsByCountry() {
+      return [];
+    },
+    async getLocation() {
+      return null;
+    },
+    async listPhotosForLocation() {
+      return [];
+    },
+  },
+  writer: {
+    async createLocation() {
+      throw new Error('Database writes are only configured for native builds.');
+    },
+    async updateLocation() {
+      throw new Error('Database writes are only configured for native builds.');
+    },
+    async deleteLocation() {
+      throw new Error('Database writes are only configured for native builds.');
+    },
+    async addPhoto() {
+      throw new Error('Database writes are only configured for native builds.');
+    },
+    async removePhoto() {
+      throw new Error('Database writes are only configured for native builds.');
+    },
+  },
+};
+
+const DatabaseContext = React.createContext<LocationRepository>(webRepository);
 
 export function DatabaseProvider({ children }: React.PropsWithChildren) {
-  return <DatabaseContext.Provider value={null}>{children}</DatabaseContext.Provider>;
+  return <DatabaseContext.Provider value={webRepository}>{children}</DatabaseContext.Provider>;
 }
 
 export function useDatabase() {
-  const value = React.use(DatabaseContext);
-
-  if (!value) {
-    throw new Error('Database access is only configured for native builds.');
-  }
-
-  return value;
+  return React.use(DatabaseContext);
 }

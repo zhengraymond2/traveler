@@ -1,43 +1,90 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import * as React from 'react';
+import { ScrollView, StyleSheet } from 'react-native';
 import { Card, Chip, Text, useTheme } from 'react-native-paper';
 
-const countries = ['Japan', 'Portugal', 'Mexico', 'Iceland'];
+import { useDatabase } from '@/db/database-provider';
+import type { Location } from '@/db/schema';
 
 export default function SavedLocationsScreen() {
   const theme = useTheme();
+  const { reader } = useDatabase();
+  const [locations, setLocations] = React.useState<Location[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+
+      async function loadLocations() {
+        setIsLoading(true);
+        setErrorMessage(null);
+
+        try {
+          const savedLocations = await reader.listLocations();
+          if (isActive) {
+            setLocations(savedLocations);
+          }
+        } catch (error) {
+          if (isActive) {
+            setErrorMessage(error instanceof Error ? error.message : 'Unable to load saved locations.');
+          }
+        } finally {
+          if (isActive) {
+            setIsLoading(false);
+          }
+        }
+      }
+
+      loadLocations();
+
+      return () => {
+        isActive = false;
+      };
+    }, [reader])
+  );
+
+  const countries = React.useMemo(() => getUniqueCountries(locations), [locations]);
 
   return (
     <ScrollView
       style={[styles.scrollView, { backgroundColor: theme.colors.background }]}
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={styles.content}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.countryList}>
-        {countries.map((country) => (
-          <Chip key={country} mode="flat" compact>
-            {country}
-          </Chip>
-        ))}
-      </ScrollView>
+      
+      {errorMessage ? (
+        <Text selectable variant="bodyMedium" style={{ color: theme.colors.error }}>
+          {errorMessage}
+        </Text>
+      ) : null}
 
-      <Card mode="elevated" style={styles.row}>
-        <Card.Content style={styles.rowContent}>
-          <View style={[styles.imagePlaceholder, { backgroundColor: theme.colors.surfaceVariant }]} />
-          <View style={styles.rowCopy}>
-            <Text selectable variant="titleMedium">
-              Saved location
-            </Text>
+      {isLoading ? (
+        <Text selectable variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+          Loading saved locations...
+        </Text>
+      ) : null}
+
+      {!isLoading && countries.length === 0 ? (
+        <Card mode="outlined" style={styles.emptyCard}>
+          <Card.Content>
             <Text selectable variant="bodyMedium">
-              Description and notes will go here.
+              No saved countries yet.
             </Text>
-            <Text selectable variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-              Country · category · source
-            </Text>
-          </View>
-        </Card.Content>
-      </Card>
+          </Card.Content>
+        </Card>
+      ) : null}
+
+      {countries.map((country) => (
+        <Chip
+          key={country}
+          mode="flat"
+          compact={false}
+          style={styles.countryChip}
+          onPress={() => router.push({ pathname: '/saved/[country]', params: { country } })}>
+          {country}
+        </Chip>
+      ))}
     </ScrollView>
   );
 }
@@ -51,26 +98,20 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
-  countryList: {
-    gap: 8,
-    paddingVertical: 4,
+  countryChip: {
+    alignSelf: 'flex-start',
   },
-  row: {
+  emptyCard: {
     borderRadius: 8,
-  },
-  rowContent: {
-    flexDirection: 'row',
-    gap: 14,
-  },
-  imagePlaceholder: {
-    width: 108,
-    aspectRatio: 1,
-    borderRadius: 8,
-    backgroundColor: '#d9dee5',
-  },
-  rowCopy: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: 10,
   },
 });
+
+function getUniqueCountries(locations: Location[]) {
+  return Array.from(
+    new Set(
+      locations
+        .map((location) => location.country?.trim())
+        .filter((country): country is string => Boolean(country))
+    )
+  ).sort((first, second) => first.localeCompare(second));
+}
