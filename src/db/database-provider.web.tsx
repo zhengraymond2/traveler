@@ -10,6 +10,9 @@ const webRepository: LocationRepository = {
     async listLocationsByCountry() {
       return [];
     },
+    async listLocationsWithoutCountry() {
+      return [];
+    },
     async getLocation() {
       return null;
     },

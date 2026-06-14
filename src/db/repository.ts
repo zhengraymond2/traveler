@@ -1,4 +1,4 @@
-import { asc, desc, eq } from 'drizzle-orm';
+import { asc, desc, eq, isNull, or } from 'drizzle-orm';
 
 import type { AppDatabase } from './client';
 import {
@@ -40,6 +40,7 @@ export type AddLocationPhotoInput = {
 export interface LocationReader {
   listLocations(): Promise<Location[]>;
   listLocationsByCountry(country: string): Promise<Location[]>;
+  listLocationsWithoutCountry(): Promise<Location[]>;
   getLocation(id: string): Promise<LocationWithPhotos | null>;
   listPhotosForLocation(locationId: string): Promise<LocationPhoto[]>;
 }
@@ -75,6 +76,14 @@ function createLocationReader(database: AppDatabase): LocationReader {
         .select()
         .from(locations)
         .where(eq(locations.country, country))
+        .orderBy(asc(locations.name), desc(locations.createdAt));
+    },
+
+    async listLocationsWithoutCountry() {
+      return database
+        .select()
+        .from(locations)
+        .where(or(isNull(locations.country), eq(locations.country, '')))
         .orderBy(asc(locations.name), desc(locations.createdAt));
     },
 

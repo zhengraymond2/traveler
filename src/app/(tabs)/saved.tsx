@@ -6,6 +6,8 @@ import { Card, Divider, List, Text, useTheme } from 'react-native-paper';
 import { useDatabase } from '@/db/database-provider';
 import type { Location } from '@/db/schema';
 
+const unknownCountryLabel = 'Unknown';
+
 export default function SavedLocationsScreen() {
   const theme = useTheme();
   const { reader } = useDatabase();
@@ -111,11 +113,14 @@ const styles = StyleSheet.create({
 });
 
 function getUniqueCountries(locations: Location[]) {
-  return Array.from(
+  const countries = Array.from(
     new Set(
       locations
         .map((location) => location.country?.trim())
         .filter((country): country is string => Boolean(country))
     )
   ).sort((first, second) => first.localeCompare(second));
+
+  const hasUnknownCountry = locations.some((location) => !location.country?.trim());
+  return hasUnknownCountry ? [...countries, unknownCountryLabel] : countries;
 }

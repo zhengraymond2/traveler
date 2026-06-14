@@ -6,6 +6,8 @@ import { Button, Card, Dialog, Portal, Surface, Text, TextInput, useTheme } from
 import { useDatabase } from '@/db/database-provider';
 import type { Location } from '@/db/schema';
 
+const unknownCountryLabel = 'Unknown';
+
 export default function SavedCountryScreen() {
   const theme = useTheme();
   const { reader, writer } = useDatabase();
@@ -25,7 +27,12 @@ export default function SavedCountryScreen() {
     setErrorMessage(null);
 
     try {
-      const savedLocations = country ? await reader.listLocationsByCountry(country) : [];
+      const savedLocations =
+        country === unknownCountryLabel
+          ? await reader.listLocationsWithoutCountry()
+          : country
+            ? await reader.listLocationsByCountry(country)
+            : [];
       setLocations(savedLocations);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to load country locations.');
@@ -40,7 +47,12 @@ export default function SavedCountryScreen() {
 
       async function loadActiveLocations() {
         try {
-          const savedLocations = country ? await reader.listLocationsByCountry(country) : [];
+          const savedLocations =
+            country === unknownCountryLabel
+              ? await reader.listLocationsWithoutCountry()
+              : country
+                ? await reader.listLocationsByCountry(country)
+                : [];
           if (isActive) {
             setLocations(savedLocations);
           }
