@@ -1,4 +1,6 @@
 import { useDragSelect } from '@osamaq/drag-select';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
 import { FlatList, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -9,12 +11,12 @@ import Animated, { useAnimatedRef, useAnimatedScrollHandler } from 'react-native
 
 import { PulsingView } from '@/components/pulsing-view';
 import { useDatabase } from '@/db/database-provider';
-import type { Location } from '@/db/schema';
+import type { LocationWithPhotos } from '@/db/repository';
 
 const unknownCountryLabel = 'Unknown';
 const rowHeight = 130;
 const rowGap = 1;
-const horizontalContentPadding = 16;
+const horizontalContentPadding = 0;
 const topContentPadding = 16;
 
 export default function SavedCountryScreen() {
@@ -23,14 +25,14 @@ export default function SavedCountryScreen() {
   const { reader, writer } = useDatabase();
   const params = useLocalSearchParams<{ country?: string }>();
   const country = normalizeParam(params.country);
-  const [locations, setLocations] = React.useState<Location[]>([]);
+  const [locations, setLocations] = React.useState<LocationWithPhotos[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(() => new Set());
   const [isMoveDialogVisible, setIsMoveDialogVisible] = React.useState(false);
   const [targetAlbum, setTargetAlbum] = React.useState('');
   const selectedCount = selectedIds.size;
-  const flatListRef = useAnimatedRef<FlatList<Location>>();
+  const flatListRef = useAnimatedRef<FlatList<LocationWithPhotos>>();
   const rowWidth = Math.max(1, windowWidth - horizontalContentPadding * 2);
 
   const { gestures, onScroll, selection } = useDragSelect({
@@ -78,9 +80,9 @@ export default function SavedCountryScreen() {
     try {
       const savedLocations =
         country === unknownCountryLabel
-          ? await reader.listLocationsWithoutCountry()
+          ? await reader.listLocationsWithoutCountryWithPhotos()
           : country
-            ? await reader.listLocationsByCountry(country)
+            ? await reader.listLocationsWithPhotosByCountry(country)
             : [];
       setLocations(savedLocations);
     } catch (error) {
@@ -101,9 +103,9 @@ export default function SavedCountryScreen() {
         try {
           const savedLocations =
             country === unknownCountryLabel
-              ? await reader.listLocationsWithoutCountry()
+              ? await reader.listLocationsWithoutCountryWithPhotos()
               : country
-                ? await reader.listLocationsByCountry(country)
+                ? await reader.listLocationsWithPhotosByCountry(country)
                 : [];
           if (isActive) {
             setLocations(savedLocations);
@@ -198,7 +200,6 @@ export default function SavedCountryScreen() {
                   isSelectionActive={selectedCount > 0}
                   isSelected={selectedIds.has(item.id)}
                   itemGesture={gestures.createItemPressHandler(item.id, index)}
-                  captionColor={theme.colors.onSurfaceVariant}
                 />
               )}
             />
@@ -244,15 +245,16 @@ export default function SavedCountryScreen() {
 }
 
 type LocationRowProps = {
-  captionColor: string;
   isLoading: boolean;
   isSelectionActive: boolean;
   isSelected: boolean;
   itemGesture: TapGesture;
-  location: Location;
+  location: LocationWithPhotos;
 };
 
-function LocationRow({ captionColor, isLoading, isSelectionActive, isSelected, itemGesture, location }: LocationRowProps) {
+function LocationRow({ isLoading, isSelectionActive, isSelected, itemGesture, location }: LocationRowProps) {
+  const imageUri = getStableRandomPhotoUri(location);
+
   return (
     <GestureDetector gesture={itemGesture}>
       <PulsingView active={isLoading}>
@@ -265,18 +267,28 @@ function LocationRow({ captionColor, isLoading, isSelectionActive, isSelected, i
             isSelectionActive && styles.locationRowDimmed,
             isSelectionActive && isSelected && styles.locationRowSelected,
           ]}>
-          <View style={styles.locationText}>
-            <Text selectable variant="titleMedium" numberOfLines={1} style={styles.locationTitle}>
-              {location.name || 'Untitled location'}
-            </Text>
-            <Text selectable variant="bodyMedium" numberOfLines={2} style={styles.locationNotes}>
-              {location.notes || 'No notes saved.'}
-            </Text>
-            <Text selectable variant="labelMedium" numberOfLines={1} style={{ color: captionColor }}>
-              {formatLocationCaption(location)}
-            </Text>
-          </View>
-          {isSelectionActive ? <SelectionControl selected={isSelected} /> : null}
+          {imageUri ? (
+            <Image source={{ uri: imageUri }} style={styles.rowImage} contentFit="cover" />
+          ) : (
+            <View style={styles.rowFallbackOverlay} />
+          )}
+          <LinearGradient
+            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.38)', 'rgba(0,0,0,0.78)']}
+            locations={[0, 0.42, 1]}
+            style={styles.locationGradient}>
+            <View style={styles.locationText}>
+              <Text selectable variant="titleMedium" numberOfLines={1} style={styles.locationTitle}>
+                {location.name || 'Untitled location'}
+              </Text>
+              <Text selectable variant="bodyMedium" numberOfLines={2} style={styles.locationNotes}>
+                {location.notes || 'No notes saved.'}
+              </Text>
+              <Text selectable variant="labelMedium" numberOfLines={1} style={styles.locationCaption}>
+                {formatLocationCaption(location)}
+              </Text>
+            </View>
+            {isSelectionActive ? <SelectionControl selected={isSelected} /> : null}
+          </LinearGradient>
         </Pressable>
       </PulsingView>
     </GestureDetector>
@@ -289,7 +301,7 @@ function LoadingLocationRows() {
       {Array.from({ length: 4 }).map((_, index) => (
         <React.Fragment key={index}>
           <PulsingView active>
-            <View style={[styles.locationRow, styles.locationRowLoading]}>
+            <View style={[styles.locationRow, styles.locationRowLoading, styles.loadingRow]}>
               <View style={styles.locationText}>
                 <View style={styles.skeletonTitle} />
                 <View style={styles.skeletonLineWide} />
@@ -324,7 +336,7 @@ function normalizeParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function formatLocationCaption(location: Location) {
+function formatLocationCaption(location: LocationWithPhotos) {
   const parts = [
     location.category,
     location.googleMapsUrl ? 'Google Maps' : undefined,
@@ -332,6 +344,18 @@ function formatLocationCaption(location: Location) {
   ].filter(Boolean);
 
   return parts.length ? parts.join(' · ') : 'Saved source';
+}
+
+function getStableRandomPhotoUri(location: LocationWithPhotos) {
+  if (!location.photos.length) {
+    return undefined;
+  }
+
+  return location.photos[hashString(location.id) % location.photos.length]?.uri;
+}
+
+function hashString(value: string) {
+  return Array.from(value).reduce((hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0, 0);
 }
 
 const styles = StyleSheet.create({
@@ -343,7 +367,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   content: {
-    padding: 16,
+    paddingVertical: 16,
     paddingBottom: 32,
   },
   contentWithActionBar: {
@@ -373,17 +397,18 @@ const styles = StyleSheet.create({
   locationRow: {
     width: '100%',
     height: 130,
+    overflow: 'hidden',
     backgroundColor: '#ffffff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 16,
   },
   locationRowPressed: {
     backgroundColor: '#f6f6f6',
   },
   locationRowLoading: {
     backgroundColor: '#f3f4f6',
+  },
+  loadingRow: {
+    justifyContent: 'center',
+    paddingHorizontal: 16,
   },
   locationRowDimmed: {
     opacity: 0.42,
@@ -395,16 +420,44 @@ const styles = StyleSheet.create({
     height: rowGap,
     backgroundColor: '#ffffff',
   },
+  rowImage: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  rowFallbackOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: '#e7ebe9',
+  },
+  locationGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 16,
+    padding: 16,
+  },
   locationText: {
     flex: 1,
     gap: 8,
   },
   locationTitle: {
-    color: '#111827',
+    color: '#ffffff',
     fontWeight: '700',
+    textShadowColor: 'rgba(0, 0, 0, 0.28)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   locationNotes: {
-    color: '#374151',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  locationCaption: {
+    color: 'rgba(255, 255, 255, 0.78)',
   },
   skeletonTitle: {
     width: '52%',

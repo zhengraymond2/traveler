@@ -1,18 +1,20 @@
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import * as React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Card, Divider, List, Text, useTheme } from 'react-native-paper';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Card, Text, useTheme } from 'react-native-paper';
 
 import { PulsingView } from '@/components/pulsing-view';
 import { useDatabase } from '@/db/database-provider';
-import type { Location } from '@/db/schema';
+import type { LocationWithPhotos } from '@/db/repository';
 
 const unknownCountryLabel = 'Unknown';
 
 export default function SavedLocationsScreen() {
   const theme = useTheme();
   const { reader } = useDatabase();
-  const [locations, setLocations] = React.useState<Location[]>([]);
+  const [locations, setLocations] = React.useState<LocationWithPhotos[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
@@ -25,7 +27,7 @@ export default function SavedLocationsScreen() {
         setErrorMessage(null);
 
         try {
-          const savedLocations = await reader.listLocations();
+          const savedLocations = await reader.listLocationsWithPhotos();
           if (isActive) {
             setLocations(savedLocations);
           }
@@ -48,7 +50,7 @@ export default function SavedLocationsScreen() {
     }, [reader])
   );
 
-  const countries = React.useMemo(() => getUniqueCountries(locations), [locations]);
+  const countries = React.useMemo(() => getCountryRows(locations), [locations]);
 
   return (
     <ScrollView
@@ -73,16 +75,16 @@ export default function SavedLocationsScreen() {
 
       {isLoading && countries.length === 0 ? <LoadingCountryRows /> : null}
 
-      {countries.map((country, index) => (
-        <React.Fragment key={country}>
+      {countries.map((country) => (
+        <React.Fragment key={country.name}>
           <PulsingView active={isLoading}>
-            <List.Item
-              title={country}
-              style={[styles.countryRow, isLoading && styles.countryRowLoading]}
-              onPress={isLoading ? undefined : () => router.push({ pathname: '/saved/[country]', params: { country } })}
+            <CountryRow
+              country={country.name}
+              imageUri={country.imageUri}
+              isLoading={isLoading}
+              onPress={() => router.push({ pathname: '/saved/[country]', params: { country: country.name } })}
             />
           </PulsingView>
-          {index < countries.length - 1 ? <Divider style={styles.countryDivider} /> : null}
         </React.Fragment>
       ))}
     </ScrollView>
@@ -94,41 +96,101 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    gap: 18,
-    padding: 16,
+    gap: 1,
+    paddingVertical: 16,
     paddingBottom: 32,
   },
   countryRow: {
-    borderRadius: 8,
-    backgroundColor: '#fffbff',
+    height: 180,
+    overflow: 'hidden',
+    borderRadius: 0,
+    backgroundColor: '#dfe3e1',
   },
   countryRowLoading: {
     backgroundColor: '#f3f4f6',
-  },
-  countryDivider: {
-    backgroundColor: '#d8d8d8',
-    height: StyleSheet.hairlineWidth,
   },
   emptyCard: {
     borderRadius: 8,
   },
   skeletonCountryContent: {
-    gap: 18,
+    gap: 1,
   },
   skeletonCountryRow: {
-    height: 64,
-    borderRadius: 8,
+    height: 130,
+    borderRadius: 0,
     justifyContent: 'center',
     paddingHorizontal: 16,
     backgroundColor: '#f3f4f6',
   },
   skeletonCountryLine: {
     width: '48%',
-    height: 16,
+    height: 20,
     borderRadius: 6,
     backgroundColor: '#ffffff',
   },
+  rowImage: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  rowGradient: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+  rowFallbackOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: '#e7ebe9',
+  },
+  countryTitle: {
+    color: '#ffffff',
+    fontWeight: '800',
+    textShadowColor: 'rgba(0, 0, 0, 0.28)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
 });
+
+type CountryRowData = {
+  imageUri?: string;
+  name: string;
+};
+
+function CountryRow({
+  country,
+  imageUri,
+  isLoading,
+  onPress,
+}: {
+  country: string;
+  imageUri?: string;
+  isLoading: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable disabled={isLoading} style={[styles.countryRow, isLoading && styles.countryRowLoading]} onPress={onPress}>
+      {imageUri ? <Image source={{ uri: imageUri }} style={styles.rowImage} contentFit="cover" /> : <View style={styles.rowFallbackOverlay} />}
+      <LinearGradient
+        colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.34)', 'rgba(0,0,0,0.76)']}
+        locations={[0, 0.45, 1]}
+        style={styles.rowGradient}>
+        <Text selectable={false} variant="headlineSmall" numberOfLines={1} style={styles.countryTitle}>
+          {country}
+        </Text>
+      </LinearGradient>
+    </Pressable>
+  );
+}
 
 function LoadingCountryRows() {
   return (
@@ -144,15 +206,33 @@ function LoadingCountryRows() {
   );
 }
 
-function getUniqueCountries(locations: Location[]) {
-  const countries = Array.from(
-    new Set(
-      locations
-        .map((location) => location.country?.trim())
-        .filter((country): country is string => Boolean(country))
-    )
-  ).sort((first, second) => first.localeCompare(second));
+function getCountryRows(locations: LocationWithPhotos[]): CountryRowData[] {
+  const countries = Array.from(new Set(locations.map(getCountryName))).sort((first, second) =>
+    first === unknownCountryLabel ? 1 : second === unknownCountryLabel ? -1 : first.localeCompare(second)
+  );
 
-  const hasUnknownCountry = locations.some((location) => !location.country?.trim());
-  return hasUnknownCountry ? [...countries, unknownCountryLabel] : countries;
+  return countries.map((country) => {
+    const countryLocations = locations.filter((location) => getCountryName(location) === country);
+    return {
+      name: country,
+      imageUri: getStableRandomPhotoUri(country, countryLocations),
+    };
+  });
+}
+
+function getCountryName(location: LocationWithPhotos) {
+  return location.country?.trim() || unknownCountryLabel;
+}
+
+function getStableRandomPhotoUri(seed: string, locations: LocationWithPhotos[]) {
+  const photos = locations.flatMap((location) => location.photos);
+  if (!photos.length) {
+    return undefined;
+  }
+
+  return photos[hashString(seed) % photos.length]?.uri;
+}
+
+function hashString(value: string) {
+  return Array.from(value).reduce((hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0, 0);
 }

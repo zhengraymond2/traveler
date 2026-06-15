@@ -40,8 +40,11 @@ export type AddLocationPhotoInput = {
 
 export interface LocationReader {
   listLocations(): Promise<Location[]>;
+  listLocationsWithPhotos(): Promise<LocationWithPhotos[]>;
   listLocationsByCountry(country: string): Promise<Location[]>;
+  listLocationsWithPhotosByCountry(country: string): Promise<LocationWithPhotos[]>;
   listLocationsWithoutCountry(): Promise<Location[]>;
+  listLocationsWithoutCountryWithPhotos(): Promise<LocationWithPhotos[]>;
   getLocation(id: string): Promise<LocationWithPhotos | null>;
   listPhotosForLocation(locationId: string): Promise<LocationPhoto[]>;
 }
@@ -72,6 +75,11 @@ function createLocationReader(database: AppDatabase): LocationReader {
       return database.select().from(locations).orderBy(desc(locations.createdAt));
     },
 
+    async listLocationsWithPhotos() {
+      const savedLocations = await this.listLocations();
+      return withPhotos(savedLocations, this.listPhotosForLocation);
+    },
+
     async listLocationsByCountry(country) {
       return database
         .select()
@@ -80,12 +88,22 @@ function createLocationReader(database: AppDatabase): LocationReader {
         .orderBy(asc(locations.name), desc(locations.createdAt));
     },
 
+    async listLocationsWithPhotosByCountry(country) {
+      const savedLocations = await this.listLocationsByCountry(country);
+      return withPhotos(savedLocations, this.listPhotosForLocation);
+    },
+
     async listLocationsWithoutCountry() {
       return database
         .select()
         .from(locations)
         .where(or(isNull(locations.country), eq(locations.country, '')))
         .orderBy(asc(locations.name), desc(locations.createdAt));
+    },
+
+    async listLocationsWithoutCountryWithPhotos() {
+      const savedLocations = await this.listLocationsWithoutCountry();
+      return withPhotos(savedLocations, this.listPhotosForLocation);
     },
 
     async getLocation(id) {
@@ -106,6 +124,18 @@ function createLocationReader(database: AppDatabase): LocationReader {
         .orderBy(asc(locationPhotos.createdAt));
     },
   };
+}
+
+async function withPhotos(
+  savedLocations: Location[],
+  listPhotosForLocation: (locationId: string) => Promise<LocationPhoto[]>
+) {
+  return Promise.all(
+    savedLocations.map(async (location) => ({
+      ...location,
+      photos: await listPhotosForLocation(location.id),
+    }))
+  );
 }
 
 function createLocationWriter(database: AppDatabase): LocationWriter {

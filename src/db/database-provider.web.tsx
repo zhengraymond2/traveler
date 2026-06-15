@@ -7,10 +7,19 @@ const webRepository: LocationRepository = {
     async listLocations() {
       return [];
     },
+    async listLocationsWithPhotos() {
+      return [];
+    },
     async listLocationsByCountry() {
       return [];
     },
+    async listLocationsWithPhotosByCountry() {
+      return [];
+    },
     async listLocationsWithoutCountry() {
+      return [];
+    },
+    async listLocationsWithoutCountryWithPhotos() {
       return [];
     },
     async getLocation() {
