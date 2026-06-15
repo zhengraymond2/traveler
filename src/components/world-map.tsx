@@ -1,6 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
+import { AppColors } from '@/constants/theme';
+
 export function WorldMap() {
   return (
     <View style={styles.fallback}>
@@ -16,11 +18,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#dfe9ef',
+    backgroundColor: AppColors.mapFallback,
     padding: 24,
   },
   fallbackText: {
-    color: '#344054',
+    color: AppColors.textSubtle,
     textAlign: 'center',
   },
 });

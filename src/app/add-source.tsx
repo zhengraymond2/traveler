@@ -5,6 +5,7 @@ import * as React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Divider, Surface, Text, TextInput, useTheme } from 'react-native-paper';
 
+import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
 
 export default function AddSourceScreen() {
@@ -247,7 +248,7 @@ const styles = StyleSheet.create({
     width: 78,
     height: 78,
     borderRadius: 8,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: AppColors.surfaceMuted,
   },
   removePhotoButton: {
     position: 'absolute',
@@ -258,10 +259,10 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(17, 24, 39, 0.78)',
+    backgroundColor: AppColors.scrim,
   },
   removePhotoText: {
-    color: '#ffffff',
+    color: AppColors.textInverse,
     fontWeight: '800',
     lineHeight: 16,
   },

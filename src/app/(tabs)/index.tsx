@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
 
 import { WorldMap } from '@/components/world-map';
+import { AppColors } from '@/constants/theme';
 
 export default function MapScreen() {
   const theme = useTheme();
@@ -47,7 +48,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 30,
-    boxShadow: '0 8px 22px rgba(0, 0, 0, 0.24)',
+    boxShadow: `0 8px 22px ${AppColors.shadow}`,
   },
   addButtonText: {
     marginTop: -2,

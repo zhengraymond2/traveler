@@ -10,6 +10,7 @@ import { Button, Card, Dialog, Portal, Surface, Text, TextInput, useTheme } from
 import Animated, { useAnimatedRef, useAnimatedScrollHandler } from 'react-native-reanimated';
 
 import { PulsingView } from '@/components/pulsing-view';
+import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
 import type { LocationWithPhotos } from '@/db/repository';
 
@@ -273,7 +274,7 @@ function LocationRow({ isLoading, isSelectionActive, isSelected, itemGesture, lo
             <View style={styles.rowFallbackOverlay} />
           )}
           <LinearGradient
-            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.38)', 'rgba(0,0,0,0.78)']}
+            colors={[AppColors.overlayTransparent, AppColors.overlayMedium, AppColors.overlayStronger]}
             locations={[0, 0.42, 1]}
             style={styles.locationGradient}>
             <View style={styles.locationText}>
@@ -398,13 +399,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 130,
     overflow: 'hidden',
-    backgroundColor: '#ffffff',
+    backgroundColor: AppColors.surface,
   },
   locationRowPressed: {
-    backgroundColor: '#f6f6f6',
+    backgroundColor: AppColors.surfacePressed,
   },
   locationRowLoading: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: AppColors.surfaceMuted,
   },
   loadingRow: {
     justifyContent: 'center',
@@ -418,7 +419,7 @@ const styles = StyleSheet.create({
   },
   cardSpacer: {
     height: rowGap,
-    backgroundColor: '#ffffff',
+    backgroundColor: AppColors.divider,
   },
   rowImage: {
     position: 'absolute',
@@ -433,7 +434,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: '#e7ebe9',
+    backgroundColor: AppColors.imageFallback,
   },
   locationGradient: {
     flex: 1,
@@ -447,51 +448,51 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   locationTitle: {
-    color: '#ffffff',
+    color: AppColors.textInverse,
     fontWeight: '700',
-    textShadowColor: 'rgba(0, 0, 0, 0.28)',
+    textShadowColor: AppColors.textShadow,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,
   },
   locationNotes: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: AppColors.imageTextSecondary,
   },
   locationCaption: {
-    color: 'rgba(255, 255, 255, 0.78)',
+    color: AppColors.imageTextMuted,
   },
   skeletonTitle: {
     width: '52%',
     height: 18,
     borderRadius: 6,
-    backgroundColor: '#ffffff',
+    backgroundColor: AppColors.surface,
   },
   skeletonLineWide: {
     width: '86%',
     height: 14,
     borderRadius: 6,
-    backgroundColor: '#ffffff',
+    backgroundColor: AppColors.surface,
   },
   skeletonLineNarrow: {
     width: '42%',
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#ffffff',
+    backgroundColor: AppColors.surface,
   },
   selectionControl: {
     width: 26,
     height: 26,
     borderRadius: 13,
     borderWidth: 1,
-    borderColor: '#74796f',
+    borderColor: AppColors.outline,
     alignItems: 'center',
     justifyContent: 'center',
   },
   selectionControlSelected: {
-    borderColor: '#256f6c',
-    backgroundColor: '#256f6c',
+    borderColor: AppColors.primary,
+    backgroundColor: AppColors.primary,
   },
   selectionCheckmark: {
-    color: '#ffffff',
+    color: AppColors.textInverse,
     fontWeight: '800',
   },
 });

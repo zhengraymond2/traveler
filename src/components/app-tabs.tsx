@@ -1,12 +1,14 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
+import { AppColors } from '@/constants/theme';
+
 export default function AppTabs() {
   return (
     <NativeTabs
-      backgroundColor="#fffbff"
-      indicatorColor="#d7f3ef"
-      labelStyle={{ selected: { color: '#083f3d' } }}
-      tintColor="#256f6c">
+      backgroundColor={AppColors.surface}
+      indicatorColor={AppColors.primaryContainer}
+      labelStyle={{ selected: { color: AppColors.onPrimaryContainer } }}
+      tintColor={AppColors.primary}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Map</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon

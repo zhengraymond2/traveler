@@ -2,6 +2,8 @@ import Mapbox from '@rnmapbox/maps';
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
+import { AppColors } from '@/constants/theme';
+
 const mapboxAccessToken = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
 if (mapboxAccessToken) {
@@ -44,11 +46,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#dfe9ef',
+    backgroundColor: AppColors.mapFallback,
     padding: 24,
   },
   fallbackText: {
-    color: '#344054',
+    color: AppColors.textSubtle,
     textAlign: 'center',
   },
 });

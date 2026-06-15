@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 
 import { PulsingView } from '@/components/pulsing-view';
+import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
 import type { LocationWithPhotos } from '@/db/repository';
 
@@ -104,10 +105,10 @@ const styles = StyleSheet.create({
     height: 180,
     overflow: 'hidden',
     borderRadius: 0,
-    backgroundColor: '#dfe3e1',
+    backgroundColor: AppColors.surfaceVariant,
   },
   countryRowLoading: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: AppColors.surfaceMuted,
   },
   emptyCard: {
     borderRadius: 8,
@@ -120,13 +121,13 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     justifyContent: 'center',
     paddingHorizontal: 16,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: AppColors.surfaceMuted,
   },
   skeletonCountryLine: {
     width: '48%',
     height: 20,
     borderRadius: 6,
-    backgroundColor: '#ffffff',
+    backgroundColor: AppColors.surface,
   },
   rowImage: {
     position: 'absolute',
@@ -150,12 +151,12 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: '#e7ebe9',
+    backgroundColor: AppColors.imageFallback,
   },
   countryTitle: {
-    color: '#ffffff',
+    color: AppColors.textInverse,
     fontWeight: '800',
-    textShadowColor: 'rgba(0, 0, 0, 0.28)',
+    textShadowColor: AppColors.textShadow,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,
   },
@@ -181,7 +182,7 @@ function CountryRow({
     <Pressable disabled={isLoading} style={[styles.countryRow, isLoading && styles.countryRowLoading]} onPress={onPress}>
       {imageUri ? <Image source={{ uri: imageUri }} style={styles.rowImage} contentFit="cover" /> : <View style={styles.rowFallbackOverlay} />}
       <LinearGradient
-        colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.34)', 'rgba(0,0,0,0.76)']}
+        colors={[AppColors.overlayTransparent, AppColors.overlaySoft, AppColors.overlayStrong]}
         locations={[0, 0.45, 1]}
         style={styles.rowGradient}>
         <Text selectable={false} variant="headlineSmall" numberOfLines={1} style={styles.countryTitle}>

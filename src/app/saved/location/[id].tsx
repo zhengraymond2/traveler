@@ -5,6 +5,7 @@ import * as React from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Card, Snackbar, Text, useTheme } from 'react-native-paper';
 
+import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
 import type { LocationWithPhotos } from '@/db/repository';
 
@@ -216,17 +217,17 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   title: {
-    color: '#111827',
+    color: AppColors.text,
     fontWeight: '800',
     lineHeight: 48,
   },
   country: {
-    color: '#6b7280',
+    color: AppColors.textMuted,
     fontSize: 24,
-    fontWeight: "ultralight"
+    fontWeight: 'ultralight',
   },
   coordinates: {
-    color: '#4b5563',
+    color: AppColors.textSubtle,
     fontStyle: 'italic',
     textDecorationLine: 'underline',
   },
@@ -238,11 +239,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   linkText: {
-    color: '#256f6c',
+    color: AppColors.primary,
     fontWeight: '700',
   },
   notes: {
-    color: '#374151',
+    color: AppColors.bodyText,
     lineHeight: 18,
   },
   gallery: {
@@ -250,6 +251,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   galleryImage: {
-    backgroundColor: '#e5e7eb',
+    backgroundColor: AppColors.surfaceMuted,
   },
 });
