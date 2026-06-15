@@ -1,8 +1,9 @@
 import { router, useFocusEffect } from 'expo-router';
 import * as React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Divider, List, Text, useTheme } from 'react-native-paper';
 
+import { PulsingView } from '@/components/pulsing-view';
 import { useDatabase } from '@/db/database-provider';
 import type { Location } from '@/db/schema';
 
@@ -60,12 +61,6 @@ export default function SavedLocationsScreen() {
         </Text>
       ) : null}
 
-      {isLoading ? (
-        <Text selectable variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-          Loading saved locations...
-        </Text>
-      ) : null}
-
       {!isLoading && countries.length === 0 ? (
         <Card mode="outlined" style={styles.emptyCard}>
           <Card.Content>
@@ -76,13 +71,17 @@ export default function SavedLocationsScreen() {
         </Card>
       ) : null}
 
+      {isLoading && countries.length === 0 ? <LoadingCountryRows /> : null}
+
       {countries.map((country, index) => (
         <React.Fragment key={country}>
-          <List.Item
-            title={country}
-            style={styles.countryRow}
-            onPress={() => router.push({ pathname: '/saved/[country]', params: { country } })}
-          />
+          <PulsingView active={isLoading}>
+            <List.Item
+              title={country}
+              style={[styles.countryRow, isLoading && styles.countryRowLoading]}
+              onPress={isLoading ? undefined : () => router.push({ pathname: '/saved/[country]', params: { country } })}
+            />
+          </PulsingView>
           {index < countries.length - 1 ? <Divider style={styles.countryDivider} /> : null}
         </React.Fragment>
       ))}
@@ -103,6 +102,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#fffbff',
   },
+  countryRowLoading: {
+    backgroundColor: '#f3f4f6',
+  },
   countryDivider: {
     backgroundColor: '#d8d8d8',
     height: StyleSheet.hairlineWidth,
@@ -110,7 +112,37 @@ const styles = StyleSheet.create({
   emptyCard: {
     borderRadius: 8,
   },
+  skeletonCountryContent: {
+    gap: 18,
+  },
+  skeletonCountryRow: {
+    height: 64,
+    borderRadius: 8,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    backgroundColor: '#f3f4f6',
+  },
+  skeletonCountryLine: {
+    width: '48%',
+    height: 16,
+    borderRadius: 6,
+    backgroundColor: '#ffffff',
+  },
 });
+
+function LoadingCountryRows() {
+  return (
+    <View style={styles.skeletonCountryContent}>
+      {Array.from({ length: 5 }).map((_, index) => (
+        <PulsingView key={index} active>
+          <View style={styles.skeletonCountryRow}>
+            <View style={styles.skeletonCountryLine} />
+          </View>
+        </PulsingView>
+      ))}
+    </View>
+  );
+}
 
 function getUniqueCountries(locations: Location[]) {
   const countries = Array.from(

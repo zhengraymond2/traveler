@@ -7,6 +7,7 @@ import type { TapGesture } from 'react-native-gesture-handler';
 import { Button, Card, Dialog, Portal, Surface, Text, TextInput, useTheme } from 'react-native-paper';
 import Animated, { useAnimatedRef, useAnimatedScrollHandler } from 'react-native-reanimated';
 
+import { PulsingView } from '@/components/pulsing-view';
 import { useDatabase } from '@/db/database-provider';
 import type { Location } from '@/db/schema';
 
@@ -94,6 +95,9 @@ export default function SavedCountryScreen() {
       let isActive = true;
 
       async function loadActiveLocations() {
+        setIsLoading(true);
+        setErrorMessage(null);
+
         try {
           const savedLocations =
             country === unknownCountryLabel
@@ -162,12 +166,6 @@ export default function SavedCountryScreen() {
           </Text>
         ) : null}
 
-        {isLoading ? (
-          <Text selectable variant="bodyMedium" style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>
-            Loading saved locations...
-          </Text>
-        ) : null}
-
         {!isLoading && locations.length === 0 ? (
           <Card mode="outlined" style={styles.emptyCard}>
             <Card.Content>
@@ -178,27 +176,34 @@ export default function SavedCountryScreen() {
           </Card>
         ) : null}
 
-        <GestureDetector gesture={gestures.panHandler}>
-          <Animated.FlatList
-            ref={flatListRef}
-            data={locations}
-            keyExtractor={(item) => item.id}
-            onScroll={scrollHandler}
-            scrollEventThrottle={16}
-            contentInsetAdjustmentBehavior="automatic"
-            contentContainerStyle={[styles.content, selectedCount > 0 && styles.contentWithActionBar]}
-            ItemSeparatorComponent={RowSeparator}
-            renderItem={({ item, index }) => (
-              <LocationRow
-                location={item}
-                isSelectionActive={selectedCount > 0}
-                isSelected={selectedIds.has(item.id)}
-                itemGesture={gestures.createItemPressHandler(item.id, index)}
-                captionColor={theme.colors.onSurfaceVariant}
-              />
-            )}
-          />
-        </GestureDetector>
+        {isLoading && locations.length === 0 ? (
+          <View style={styles.content}>
+            <LoadingLocationRows />
+          </View>
+        ) : (
+          <GestureDetector gesture={gestures.panHandler}>
+            <Animated.FlatList
+              ref={flatListRef}
+              data={locations}
+              keyExtractor={(item) => item.id}
+              onScroll={scrollHandler}
+              scrollEventThrottle={16}
+              contentInsetAdjustmentBehavior="automatic"
+              contentContainerStyle={[styles.content, selectedCount > 0 && styles.contentWithActionBar]}
+              ItemSeparatorComponent={RowSeparator}
+              renderItem={({ item, index }) => (
+                <LocationRow
+                  location={item}
+                  isLoading={isLoading}
+                  isSelectionActive={selectedCount > 0}
+                  isSelected={selectedIds.has(item.id)}
+                  itemGesture={gestures.createItemPressHandler(item.id, index)}
+                  captionColor={theme.colors.onSurfaceVariant}
+                />
+              )}
+            />
+          </GestureDetector>
+        )}
       </View>
 
       <Portal>
@@ -240,36 +245,62 @@ export default function SavedCountryScreen() {
 
 type LocationRowProps = {
   captionColor: string;
+  isLoading: boolean;
   isSelectionActive: boolean;
   isSelected: boolean;
   itemGesture: TapGesture;
   location: Location;
 };
 
-function LocationRow({ captionColor, isSelectionActive, isSelected, itemGesture, location }: LocationRowProps) {
+function LocationRow({ captionColor, isLoading, isSelectionActive, isSelected, itemGesture, location }: LocationRowProps) {
   return (
     <GestureDetector gesture={itemGesture}>
-      <Pressable
-        style={({ pressed }) => [
-          styles.locationRow,
-          pressed && styles.locationRowPressed,
-          isSelectionActive && styles.locationRowDimmed,
-          isSelectionActive && isSelected && styles.locationRowSelected,
-        ]}>
-        <View style={styles.locationText}>
-          <Text selectable variant="titleMedium" numberOfLines={1} style={styles.locationTitle}>
-            {location.name || 'Untitled location'}
-          </Text>
-          <Text selectable variant="bodyMedium" numberOfLines={2} style={styles.locationNotes}>
-            {location.notes || 'No notes saved.'}
-          </Text>
-          <Text selectable variant="labelMedium" numberOfLines={1} style={{ color: captionColor }}>
-            {formatLocationCaption(location)}
-          </Text>
-        </View>
-        {isSelectionActive ? <SelectionControl selected={isSelected} /> : null}
-      </Pressable>
+      <PulsingView active={isLoading}>
+        <Pressable
+          disabled={isLoading}
+          style={({ pressed }) => [
+            styles.locationRow,
+            isLoading && styles.locationRowLoading,
+            pressed && styles.locationRowPressed,
+            isSelectionActive && styles.locationRowDimmed,
+            isSelectionActive && isSelected && styles.locationRowSelected,
+          ]}>
+          <View style={styles.locationText}>
+            <Text selectable variant="titleMedium" numberOfLines={1} style={styles.locationTitle}>
+              {location.name || 'Untitled location'}
+            </Text>
+            <Text selectable variant="bodyMedium" numberOfLines={2} style={styles.locationNotes}>
+              {location.notes || 'No notes saved.'}
+            </Text>
+            <Text selectable variant="labelMedium" numberOfLines={1} style={{ color: captionColor }}>
+              {formatLocationCaption(location)}
+            </Text>
+          </View>
+          {isSelectionActive ? <SelectionControl selected={isSelected} /> : null}
+        </Pressable>
+      </PulsingView>
     </GestureDetector>
+  );
+}
+
+function LoadingLocationRows() {
+  return (
+    <>
+      {Array.from({ length: 4 }).map((_, index) => (
+        <React.Fragment key={index}>
+          <PulsingView active>
+            <View style={[styles.locationRow, styles.locationRowLoading]}>
+              <View style={styles.locationText}>
+                <View style={styles.skeletonTitle} />
+                <View style={styles.skeletonLineWide} />
+                <View style={styles.skeletonLineNarrow} />
+              </View>
+            </View>
+          </PulsingView>
+          {index < 3 ? <RowSeparator /> : null}
+        </React.Fragment>
+      ))}
+    </>
   );
 }
 
@@ -351,6 +382,9 @@ const styles = StyleSheet.create({
   locationRowPressed: {
     backgroundColor: '#f6f6f6',
   },
+  locationRowLoading: {
+    backgroundColor: '#f3f4f6',
+  },
   locationRowDimmed: {
     opacity: 0.42,
   },
@@ -371,6 +405,24 @@ const styles = StyleSheet.create({
   },
   locationNotes: {
     color: '#374151',
+  },
+  skeletonTitle: {
+    width: '52%',
+    height: 18,
+    borderRadius: 6,
+    backgroundColor: '#ffffff',
+  },
+  skeletonLineWide: {
+    width: '86%',
+    height: 14,
+    borderRadius: 6,
+    backgroundColor: '#ffffff',
+  },
+  skeletonLineNarrow: {
+    width: '42%',
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#ffffff',
   },
   selectionControl: {
     width: 26,
