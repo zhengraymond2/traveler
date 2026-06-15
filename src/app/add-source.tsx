@@ -1,6 +1,8 @@
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { router, Stack } from 'expo-router';
 import * as React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Divider, Surface, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { useDatabase } from '@/db/database-provider';
@@ -13,6 +15,7 @@ export default function AddSourceScreen() {
   const [gpsCoordinates, setGpsCoordinates] = React.useState('');
   const [googleMapsUrl, setGoogleMapsUrl] = React.useState('');
   const [instagramUrl, setInstagramUrl] = React.useState('');
+  const [photos, setPhotos] = React.useState<SelectedPhoto[]>([]);
   const [notes, setNotes] = React.useState('');
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -32,6 +35,7 @@ export default function AddSourceScreen() {
         googleMapsUrl,
         instagramUrl,
         notes,
+        photos: photos.map((photo) => ({ uri: photo.uri })),
       });
 
       router.back();
@@ -40,6 +44,34 @@ export default function AddSourceScreen() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function handleAddPhotos() {
+    setErrorMessage(null);
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setErrorMessage('Photo library permission is required to add photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsMultipleSelection: true,
+      mediaTypes: ['images'],
+      orderedSelection: true,
+      quality: 0.9,
+      selectionLimit: 0,
+    });
+
+    if (result.canceled) {
+      return;
+    }
+
+    setPhotos((currentPhotos) => mergePhotos(currentPhotos, result.assets.map(toSelectedPhoto)));
+  }
+
+  function handleRemovePhoto(uri: string) {
+    setPhotos((currentPhotos) => currentPhotos.filter((photo) => photo.uri !== uri));
   }
 
   return (
@@ -126,9 +158,27 @@ export default function AddSourceScreen() {
             <Text selectable variant="labelLarge">
               Photos
             </Text>
-            <Button mode="outlined" icon="image-plus" style={styles.photoButton}>
+            <Button mode="outlined" icon="image-plus" style={styles.photoButton} onPress={handleAddPhotos}>
               Add photos
             </Button>
+            {photos.length ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoList}>
+                {photos.map((photo) => (
+                  <View key={photo.uri} style={styles.photoPreview}>
+                    <Image source={{ uri: photo.uri }} style={styles.photoThumbnail} contentFit="cover" />
+                    <Pressable
+                      accessibilityLabel={`Remove ${photo.fileName || 'photo'}`}
+                      accessibilityRole="button"
+                      style={styles.removePhotoButton}
+                      onPress={() => handleRemovePhoto(photo.uri)}>
+                      <Text selectable={false} variant="labelSmall" style={styles.removePhotoText}>
+                        ×
+                      </Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : null}
           </View>
 
           <TextInput
@@ -186,6 +236,35 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     borderRadius: 8,
   },
+  photoList: {
+    gap: 10,
+    paddingVertical: 2,
+  },
+  photoPreview: {
+    position: 'relative',
+  },
+  photoThumbnail: {
+    width: 78,
+    height: 78,
+    borderRadius: 8,
+    backgroundColor: '#e5e7eb',
+  },
+  removePhotoButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(17, 24, 39, 0.78)',
+  },
+  removePhotoText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    lineHeight: 16,
+  },
   textArea: {
     minHeight: 140,
   },
@@ -198,6 +277,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 });
+
+type SelectedPhoto = {
+  fileName?: string | null;
+  uri: string;
+};
 
 function parseCoordinates(value: string) {
   const normalized = value.trim();
@@ -214,4 +298,24 @@ function parseCoordinates(value: string) {
   }
 
   return { latitude, longitude };
+}
+
+function toSelectedPhoto(asset: ImagePicker.ImagePickerAsset): SelectedPhoto {
+  return {
+    fileName: asset.fileName,
+    uri: asset.uri,
+  };
+}
+
+function mergePhotos(currentPhotos: SelectedPhoto[], newPhotos: SelectedPhoto[]) {
+  const existingUris = new Set(currentPhotos.map((photo) => photo.uri));
+  const uniqueNewPhotos = newPhotos.filter((photo) => {
+    if (existingUris.has(photo.uri)) {
+      return false;
+    }
+    existingUris.add(photo.uri);
+    return true;
+  });
+
+  return [...currentPhotos, ...uniqueNewPhotos];
 }
