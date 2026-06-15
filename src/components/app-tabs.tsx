@@ -5,9 +5,11 @@ import { AppColors } from '@/constants/theme';
 export default function AppTabs() {
   return (
     <NativeTabs
-      backgroundColor={AppColors.surface}
+      backgroundColor={AppColors.navBackground}
+      blurEffect="systemUltraThinMaterialLight"
       indicatorColor={AppColors.primaryContainer}
       labelStyle={{ selected: { color: AppColors.onPrimaryContainer } }}
+      shadowColor={AppColors.navShadow}
       tintColor={AppColors.primary}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Map</NativeTabs.Trigger.Label>

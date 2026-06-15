@@ -22,6 +22,8 @@ export const AppColors = {
   onTertiaryContainer: '#242449',
   background: '#fffafa',
   surface: '#ffffff',
+  navBackground: 'rgba(255, 255, 255, 0.84)',
+  navShadow: 'rgba(138, 116, 119, 0.2)',
   surfaceMuted: '#f7f2f2',
   surfacePressed: '#fff0f1',
   surfaceVariant: '#f1dedf',
