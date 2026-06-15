@@ -1,13 +1,16 @@
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { FAB, Surface, useTheme } from 'react-native-paper';
+import { FAB, useTheme } from 'react-native-paper';
+
+import { WorldMap } from '@/components/world-map';
 
 export default function MapScreen() {
   const theme = useTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Surface mode="flat" style={styles.mapPlaceholder}>
+      <View style={styles.map}>
+        <WorldMap />
         <FAB
           icon="plus"
           mode="elevated"
@@ -15,7 +18,7 @@ export default function MapScreen() {
           style={styles.addButton}
           onPress={() => router.push('/add-source')}
         />
-      </Surface>
+      </View>
     </View>
   );
 }
@@ -23,17 +26,14 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
   },
-  mapPlaceholder: {
+  map: {
     flex: 1,
-    borderRadius: 8,
-    backgroundColor: '#d92d20',
-    alignItems: 'flex-end',
-    justifyContent: 'flex-start',
-    padding: 16,
   },
   addButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
     borderRadius: 16,
   },
 });
