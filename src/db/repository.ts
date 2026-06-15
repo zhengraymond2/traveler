@@ -1,6 +1,7 @@
 import { asc, desc, eq, isNull, or } from 'drizzle-orm';
 
 import type { AppDatabase } from './client';
+import { dedupeLocationRecord } from './dedupe-locations';
 import {
   locationPhotos,
   locations,
@@ -144,7 +145,7 @@ function createLocationWriter(database: AppDatabase): LocationWriter {
         .where(eq(locations.id, location.id))
         .limit(1);
 
-      return createdLocation;
+      return dedupeLocationRecord(database, createdLocation);
     },
 
     async updateLocation(id, input) {
