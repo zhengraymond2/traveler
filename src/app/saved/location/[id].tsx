@@ -1,19 +1,25 @@
+import * as Clipboard from 'expo-clipboard';
+import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
-import { Card, Text, useTheme } from 'react-native-paper';
+import { Linking, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Card, Snackbar, Text, useTheme } from 'react-native-paper';
 
 import { useDatabase } from '@/db/database-provider';
 import type { LocationWithPhotos } from '@/db/repository';
 
 export default function SavedLocationDetailScreen() {
   const theme = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
   const { reader } = useDatabase();
   const params = useLocalSearchParams<{ id?: string }>();
   const id = normalizeParam(params.id);
   const [location, setLocation] = React.useState<LocationWithPhotos | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [copyMessageVisible, setCopyMessageVisible] = React.useState(false);
+  const galleryGap = 2;
+  const galleryItemSize = Math.floor((windowWidth - 32 - galleryGap * 2) / 3);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -83,54 +89,87 @@ export default function SavedLocationDetailScreen() {
         ) : null}
 
         {location ? (
-          <>
-            <Card mode="elevated" style={styles.card}>
-              <Card.Content style={styles.cardContent}>
-                <Text selectable variant="headlineSmall">
-                  {location.name || 'Untitled location'}
+          <View style={styles.detail}>
+            <View style={styles.header}>
+              <Text selectable variant="displaySmall" style={styles.title}>
+                {getLocationTitle(location)}
+              </Text>
+              {location.country ? (
+                <Text selectable variant="titleMedium" style={styles.country}>
+                  {location.country}
                 </Text>
-                <Field label="Country or region" value={location.country} />
-                <Field label="Category" value={location.category} />
-                <Field label="GPS coordinates" value={formatCoordinates(location)} />
-                <Field label="Google Maps" value={location.googleMapsUrl} />
-                <Field label="Instagram" value={location.instagramUrl} />
-                <Field label="Notes" value={location.notes} />
-              </Card.Content>
-            </Card>
-
-            <Card mode="outlined" style={styles.card}>
-              <Card.Content style={styles.cardContent}>
-                <Text selectable variant="titleMedium">
-                  Photos
-                </Text>
-                {location.photos.length ? (
-                  location.photos.map((photo) => (
-                    <Field key={photo.id} label={photo.caption || 'Photo'} value={photo.uri} />
-                  ))
-                ) : (
-                  <Text selectable variant="bodyMedium">
-                    No photos saved yet.
+              ) : null}
+              {formatCoordinates(location) ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Copy GPS coordinates"
+                  onPress={() => handleCopyCoordinates(formatCoordinates(location))}>
+                  <Text selectable variant="bodyMedium" style={styles.coordinates}>
+                    {formatCoordinates(location)}
                   </Text>
-                )}
-              </Card.Content>
-            </Card>
-          </>
+                </Pressable>
+              ) : null}
+            </View>
+
+            <View style={styles.links}>
+              <DetailLink label="Google Maps" url={getGoogleMapsUrl(location)} />
+              {location.instagramUrl ? <DetailLink label="Instagram" url={location.instagramUrl} /> : null}
+            </View>
+
+            {location.notes ? (
+              <Text selectable variant="bodySmall" style={styles.notes}>
+                {location.notes}
+              </Text>
+            ) : null}
+
+            {location.photos.length ? (
+              <View style={[styles.gallery, { gap: galleryGap }]}>
+                {location.photos.map((photo) => (
+                  <Image
+                    key={photo.id}
+                    source={{ uri: photo.uri }}
+                    style={[
+                      styles.galleryImage,
+                      {
+                        width: galleryItemSize,
+                        height: galleryItemSize,
+                      },
+                    ]}
+                    contentFit="cover"
+                  />
+                ))}
+              </View>
+            ) : null}
+          </View>
         ) : null}
       </ScrollView>
+
+      <Snackbar
+        visible={copyMessageVisible}
+        duration={1400}
+        onDismiss={() => setCopyMessageVisible(false)}>
+        GPS coordinates copied
+      </Snackbar>
     </>
   );
+
+  async function handleCopyCoordinates(value: string | undefined) {
+    if (!value) {
+      return;
+    }
+
+    await Clipboard.setStringAsync(value);
+    setCopyMessageVisible(true);
+  }
 }
 
-function Field({ label, value }: { label: string; value: string | null | undefined }) {
+function DetailLink({ label, url }: { label: string; url: string }) {
   return (
-    <>
-      <Text selectable variant="labelLarge">
-        {label}
+    <Pressable accessibilityRole="link" style={styles.linkRow} onPress={() => Linking.openURL(url)}>
+      <Text variant="titleMedium" style={styles.linkText}>
+        {label} ↗
       </Text>
-      <Text selectable variant="bodyMedium">
-        {value || 'Not saved'}
-      </Text>
-    </>
+    </Pressable>
   );
 }
 
@@ -146,19 +185,71 @@ function formatCoordinates(location: LocationWithPhotos) {
   return `${location.latitude}, ${location.longitude}`;
 }
 
+function getLocationTitle(location: LocationWithPhotos) {
+  return location.name || 'Untitled location';
+}
+
+function getGoogleMapsUrl(location: LocationWithPhotos) {
+  if (location.googleMapsUrl) {
+    return location.googleMapsUrl;
+  }
+
+  const query = [getLocationTitle(location), location.country].filter(Boolean).join(', ');
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
   content: {
-    gap: 16,
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
   card: {
     borderRadius: 8,
   },
-  cardContent: {
-    gap: 8,
+  detail: {
+    gap: 24,
+  },
+  header: {
+    gap: 6,
+  },
+  title: {
+    color: '#111827',
+    fontWeight: '800',
+    lineHeight: 48,
+  },
+  country: {
+    color: '#6b7280',
+    fontSize: 24,
+    fontWeight: "ultralight"
+  },
+  coordinates: {
+    color: '#4b5563',
+    fontStyle: 'italic',
+    textDecorationLine: 'underline',
+  },
+  links: {
+    gap: 10,
+  },
+  linkRow: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+  },
+  linkText: {
+    color: '#256f6c',
+    fontWeight: '700',
+  },
+  notes: {
+    color: '#374151',
+    lineHeight: 18,
+  },
+  gallery: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  galleryImage: {
+    backgroundColor: '#e5e7eb',
   },
 });
