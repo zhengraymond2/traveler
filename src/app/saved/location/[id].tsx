@@ -183,7 +183,7 @@ function formatCoordinates(location: LocationWithPhotos) {
     return undefined;
   }
 
-  return `${location.latitude}, ${location.longitude}`;
+  return `(${location.latitude}, ${location.longitude})`;
 }
 
 function getLocationTitle(location: LocationWithPhotos) {
@@ -227,9 +227,10 @@ const styles = StyleSheet.create({
     fontWeight: 'ultralight',
   },
   coordinates: {
-    color: AppColors.textSubtle,
+    color: AppColors.textTertiary,
     fontStyle: 'italic',
     textDecorationLine: 'underline',
+    fontWeight: 'ultralight',
   },
   links: {
     gap: 10,
