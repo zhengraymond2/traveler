@@ -39,6 +39,12 @@
           }
         }
       ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Traveler uses your location to start the map near your current country and show your position."
+        }
+      ],
       "expo-sqlite",
       [
         "@rnmapbox/maps",

@@ -29,6 +29,8 @@ export const AppColors = {
   surfaceVariant: '#f1dedf',
   imageFallback: '#f3e8e7',
   mapFallback: '#f7eeee',
+  mapUserLocation: '#1a73e8',
+  mapUserLocationPulse: 'rgba(26, 115, 232, 0.3)',
   text: '#211718',
   textInverse: '#ffffff',
   textSecondary: '#6f5f61',

@@ -1,24 +1,24 @@
-import Mapbox, { type MapState } from '@rnmapbox/maps';
+import Mapbox, { type Location, type MapState } from '@rnmapbox/maps';
 import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
 import { Image } from 'expo-image';
+import * as ExpoLocation from 'expo-location';
 import { router } from 'expo-router';
 import * as React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
+import { MapGestureSettings, MapTerrainStyle, MapTuning, PhotoPinDensityStops } from '@/constants/map';
 import { AppColors } from '@/constants/theme';
 import type { LocationWithPhotos } from '@/db/repository';
 
 const mapboxAccessToken = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
-const COUNTRY_VIEW_ZOOM_LEVEL = 4.15;
-const CAMERA_ANIMATION_DURATION_MS = 900;
-const PREVIEW_GALLERY_CELL_COUNT = 9;
 const INITIAL_CAMERA_SNAPSHOT: MapCameraSnapshot = {
   bounds: null,
   zoom: 0,
   zoomBucket: 0,
 };
+let hasCenteredOnStartupLocation = false;
 
 if (mapboxAccessToken) {
   Mapbox.setAccessToken(mapboxAccessToken);
@@ -26,6 +26,10 @@ if (mapboxAccessToken) {
 
 type WorldMapProps = {
   locations?: LocationWithPhotos[];
+};
+
+export type WorldMapHandle = {
+  moveToUserLocation: () => Promise<boolean>;
 };
 
 type MapCameraSnapshot = {
@@ -41,8 +45,13 @@ type VisibleBounds = {
 
 type CoordinatePair = [longitude: number, latitude: number];
 
-export function WorldMap({ locations = [] }: WorldMapProps) {
+export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function WorldMap(
+  { locations = [] },
+  ref
+) {
   const cameraRef = React.useRef<Mapbox.Camera>(null);
+  const userCoordinateRef = React.useRef<CoordinatePair | null>(null);
+  const [hasLocationPermission, setHasLocationPermission] = React.useState(false);
   const [cameraSnapshot, setCameraSnapshot] = React.useState<MapCameraSnapshot>(INITIAL_CAMERA_SNAPSHOT);
   const [selectedLocation, setSelectedLocation] = React.useState<CoordinateLocation | null>(null);
   const locationDotShape = React.useMemo(() => createLocationDotShape(locations), [locations]);
@@ -60,15 +69,85 @@ export function WorldMap({ locations = [] }: WorldMapProps) {
     }
   }, [locationsById, selectedLocation]);
 
-  const handleLocationPress = React.useCallback((location: CoordinateLocation) => {
-    setSelectedLocation(location);
+  const flyToCountryLevel = React.useCallback((coordinate: CoordinatePair | null) => {
+    if (!coordinate) {
+      return false;
+    }
+
     cameraRef.current?.setCamera({
-      centerCoordinate: [location.longitude, location.latitude],
-      zoomLevel: COUNTRY_VIEW_ZOOM_LEVEL,
-      animationDuration: CAMERA_ANIMATION_DURATION_MS,
+      centerCoordinate: coordinate,
+      zoomLevel: MapTuning.countryViewZoomLevel,
+      animationDuration: MapTuning.cameraAnimationDurationMs,
       animationMode: 'flyTo',
     });
+    return true;
   }, []);
+
+  const requestCurrentUserCoordinate = React.useCallback(async () => {
+    try {
+      const permission = await ExpoLocation.requestForegroundPermissionsAsync();
+
+      if (permission.status !== ExpoLocation.PermissionStatus.GRANTED) {
+        setHasLocationPermission(false);
+        return null;
+      }
+
+      setHasLocationPermission(true);
+
+      const currentLocation = await ExpoLocation.getCurrentPositionAsync({
+        accuracy: ExpoLocation.Accuracy.Balanced,
+      });
+      const coordinate = getExpoLocationCoordinate(currentLocation);
+      userCoordinateRef.current = coordinate;
+
+      return coordinate;
+    } catch (error) {
+      console.warn('Unable to get current location:', error);
+      return null;
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!mapboxAccessToken || hasCenteredOnStartupLocation) {
+      return;
+    }
+
+    let isActive = true;
+
+    async function centerOnStartupLocation() {
+      const coordinate = await requestCurrentUserCoordinate();
+
+      if (!isActive || !coordinate || hasCenteredOnStartupLocation) {
+        return;
+      }
+
+      hasCenteredOnStartupLocation = true;
+      flyToCountryLevel(coordinate);
+    }
+
+    void centerOnStartupLocation();
+
+    return () => {
+      isActive = false;
+    };
+  }, [flyToCountryLevel, requestCurrentUserCoordinate]);
+
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      moveToUserLocation: async () => {
+        const coordinate = await requestCurrentUserCoordinate();
+
+        return flyToCountryLevel(coordinate) || flyToCountryLevel(userCoordinateRef.current);
+      },
+    }),
+    [flyToCountryLevel, requestCurrentUserCoordinate]
+  );
+
+  const handleLocationPress = React.useCallback((location: CoordinateLocation) => {
+    setSelectedLocation(location);
+    flyToCountryLevel([location.longitude, location.latitude]);
+  }, [flyToCountryLevel]);
 
   const handleDotPress = React.useCallback(
     (event: { features: GeoJSON.Feature[] }) => {
@@ -113,6 +192,24 @@ export function WorldMap({ locations = [] }: WorldMapProps) {
     });
   }, []);
 
+  const handleUserLocationUpdate = React.useCallback((location: Location) => {
+    const coordinate = getUserLocationCoordinate(location);
+
+    if (!coordinate) {
+      return;
+    }
+
+    userCoordinateRef.current = coordinate;
+    setHasLocationPermission(true);
+
+    if (hasCenteredOnStartupLocation) {
+      return;
+    }
+
+    hasCenteredOnStartupLocation = true;
+    flyToCountryLevel(coordinate);
+  }, [flyToCountryLevel]);
+
   if (!mapboxAccessToken) {
     return (
       <View style={styles.fallback}>
@@ -127,10 +224,14 @@ export function WorldMap({ locations = [] }: WorldMapProps) {
     <View style={styles.mapContainer}>
       <Mapbox.MapView
         style={styles.map}
-        styleURL={Mapbox.StyleURL.Light}
+        styleURL={Mapbox.StyleURL.Outdoors}
         projection="globe"
         compassEnabled={false}
         scaleBarEnabled={false}
+        pitchEnabled
+        rotateEnabled
+        maxPitch={70}
+        gestureSettings={MapGestureSettings}
         onCameraChanged={handleCameraChanged}
         onMapIdle={handleMapIdle}>
         <Mapbox.Camera
@@ -140,6 +241,22 @@ export function WorldMap({ locations = [] }: WorldMapProps) {
           minZoomLevel={0}
           animationMode="none"
         />
+        <Mapbox.RasterDemSource
+          id={MapTuning.terrainSourceId}
+          url={MapTuning.mapboxTerrainDemUrl}
+          tileSize={512}
+          maxZoomLevel={14}
+        />
+        <Mapbox.Terrain sourceID={MapTuning.terrainSourceId} style={MapTerrainStyle} />
+        {hasLocationPermission ? (
+          <>
+            <Mapbox.UserLocation visible={false} minDisplacement={25} onUpdate={handleUserLocationUpdate} />
+            <Mapbox.LocationPuck
+              pulsing={{ isEnabled: true, color: AppColors.mapUserLocationPulse, radius: 52 }}
+              visible
+            />
+          </>
+        ) : null}
         {locationDotShape.features.length ? (
           <Mapbox.ShapeSource
             id="saved-location-dots"
@@ -184,7 +301,7 @@ export function WorldMap({ locations = [] }: WorldMapProps) {
       ) : null}
     </View>
   );
-}
+});
 
 type CoordinateLocation = LocationWithPhotos & { latitude: number; longitude: number };
 
@@ -316,50 +433,17 @@ function getPhotoPinCount(candidateCount: number, zoom: number) {
     return 0;
   }
 
-  const sampleRatio = getPhotoPinSampleRatio(zoom);
-  const pinBudget = getPhotoPinBudget(zoom);
+  const densityStop = getPhotoPinDensityStop(zoom);
 
-  return Math.min(candidateCount, pinBudget, Math.max(1, Math.ceil(candidateCount * sampleRatio)));
+  return Math.min(
+    candidateCount,
+    densityStop.pinBudget,
+    Math.max(1, Math.ceil(candidateCount * densityStop.sampleRatio))
+  );
 }
 
-function getPhotoPinSampleRatio(zoom: number) {
-  if (zoom < 2) {
-    return 0.25;
-  }
-
-  if (zoom < 4) {
-    return 0.4;
-  }
-
-  if (zoom < 6) {
-    return 0.75;
-  }
-
-  if (zoom < 8) {
-    return 0.9;
-  }
-
-  return 1;
-}
-
-function getPhotoPinBudget(zoom: number) {
-  if (zoom < 2) {
-    return 8;
-  }
-
-  if (zoom < 4) {
-    return 14;
-  }
-
-  if (zoom < 6) {
-    return 24;
-  }
-
-  if (zoom < 8) {
-    return 36;
-  }
-
-  return 56;
+function getPhotoPinDensityStop(zoom: number) {
+  return PhotoPinDensityStops.find((densityStop) => zoom < densityStop.maxZoom) ?? PhotoPinDensityStops[0];
 }
 
 function isLocationInBounds(location: CoordinateLocation, bounds: VisibleBounds) {
@@ -442,6 +526,26 @@ function normalizeLongitude(longitude: number) {
   return ((((longitude + 180) % 360) + 360) % 360) - 180;
 }
 
+function getUserLocationCoordinate(location: Location): CoordinatePair | null {
+  const { longitude, latitude } = location.coords;
+
+  if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+    return null;
+  }
+
+  return [longitude, latitude];
+}
+
+function getExpoLocationCoordinate(location: ExpoLocation.LocationObject): CoordinatePair | null {
+  const { longitude, latitude } = location.coords;
+
+  if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+    return null;
+  }
+
+  return [longitude, latitude];
+}
+
 function getFeatureLocationId(feature: GeoJSON.Feature | undefined) {
   const propertyId = feature?.properties?.id;
   const featureId = feature?.id;
@@ -468,7 +572,7 @@ function getLocationName(location: LocationWithPhotos) {
 function getGalleryCells(location: LocationWithPhotos) {
   const photoUris = location.photos.map((photo) => photo.uri).filter(Boolean);
 
-  return Array.from({ length: PREVIEW_GALLERY_CELL_COUNT }, (_, index) => {
+  return Array.from({ length: MapTuning.previewGalleryCellCount }, (_, index) => {
     if (!photoUris.length) {
       return null;
     }

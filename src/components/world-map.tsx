@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
@@ -8,7 +9,19 @@ type WorldMapProps = {
   locations?: LocationWithPhotos[];
 };
 
-export function WorldMap(_props: WorldMapProps) {
+export type WorldMapHandle = {
+  moveToUserLocation: () => Promise<boolean>;
+};
+
+export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function WorldMap(_props, ref) {
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      moveToUserLocation: async () => false,
+    }),
+    []
+  );
+
   return (
     <View style={styles.fallback}>
       <Text selectable variant="bodyMedium" style={styles.fallbackText}>
@@ -16,7 +29,7 @@ export function WorldMap(_props: WorldMapProps) {
       </Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   fallback: {
