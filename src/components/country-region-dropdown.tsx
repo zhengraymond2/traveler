@@ -78,6 +78,7 @@ export function CountryRegionDropdown({ savedRegions, value, onChange }: Country
         maxHeight={360}
         mode="default"
         onChange={handleSelectCountryRegion}
+        onChangeText={handleSearchTextChange}
         placeholder="Japan, Portugal, Mexico City..."
         placeholderStyle={styles.placeholderText}
         renderInputSearch={(onSearch) => (
@@ -88,10 +89,7 @@ export function CountryRegionDropdown({ savedRegions, value, onChange }: Country
             placeholderTextColor={AppColors.textTertiary}
             style={styles.searchInput}
             value={searchText}
-            onChangeText={(text) => {
-              handleSearchTextChange(text);
-              onSearch(text);
-            }}
+            onChangeText={onSearch}
           />
         )}
         renderItem={renderCountryRegionItem}
