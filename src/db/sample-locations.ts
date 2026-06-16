@@ -40,6 +40,201 @@ function samplePhoto(seed: string) {
   return `https://picsum.photos/seed/traveler-${seed}/900/900`;
 }
 
+type JapanDensityAnchor = {
+  name: string;
+  latitude: number;
+  longitude: number;
+  category: string;
+  note: string;
+};
+
+const japanDensityAnchors: JapanDensityAnchor[] = [
+  {
+    name: 'Sapporo Odori Park',
+    latitude: 43.0618,
+    longitude: 141.3545,
+    category: 'Neighborhood',
+    note: 'Sapporo city cluster for dense map testing.',
+  },
+  {
+    name: 'Otaru Canal',
+    latitude: 43.198,
+    longitude: 140.994,
+    category: 'Attraction',
+    note: 'Otaru harbor and canal cluster for dense map testing.',
+  },
+  {
+    name: 'Hakodate Bay',
+    latitude: 41.7687,
+    longitude: 140.7288,
+    category: 'Attraction',
+    note: 'Southern Hokkaido bayfront cluster for dense map testing.',
+  },
+  {
+    name: 'Aomori Bay',
+    latitude: 40.8286,
+    longitude: 140.7359,
+    category: 'Attraction',
+    note: 'Northern Honshu waterfront cluster for dense map testing.',
+  },
+  {
+    name: 'Sendai Station',
+    latitude: 38.2602,
+    longitude: 140.8824,
+    category: 'Transit',
+    note: 'Tohoku rail and city cluster for dense map testing.',
+  },
+  {
+    name: 'Nikko Toshogu',
+    latitude: 36.7581,
+    longitude: 139.5986,
+    category: 'Attraction',
+    note: 'Nikko shrine and mountain cluster for dense map testing.',
+  },
+  {
+    name: 'Tokyo Station',
+    latitude: 35.6812,
+    longitude: 139.7671,
+    category: 'Transit',
+    note: 'Central Tokyo cluster for dense map testing.',
+  },
+  {
+    name: 'Shinjuku Gyoen',
+    latitude: 35.6852,
+    longitude: 139.71,
+    category: 'Park',
+    note: 'West Tokyo park and neighborhood cluster for dense map testing.',
+  },
+  {
+    name: 'Kamakura Daibutsu',
+    latitude: 35.3167,
+    longitude: 139.5357,
+    category: 'Attraction',
+    note: 'Kamakura coast and temple cluster for dense map testing.',
+  },
+  {
+    name: 'Lake Kawaguchi',
+    latitude: 35.5013,
+    longitude: 138.7657,
+    category: 'Nature',
+    note: 'Fuji Five Lakes cluster for dense map testing.',
+  },
+  {
+    name: 'Kanazawa Kenrokuen',
+    latitude: 36.5621,
+    longitude: 136.6625,
+    category: 'Attraction',
+    note: 'Hokuriku garden and old town cluster for dense map testing.',
+  },
+  {
+    name: 'Nagoya Castle',
+    latitude: 35.1856,
+    longitude: 136.899,
+    category: 'Attraction',
+    note: 'Nagoya city cluster for dense map testing.',
+  },
+  {
+    name: 'Kyoto Station',
+    latitude: 34.9858,
+    longitude: 135.7588,
+    category: 'Transit',
+    note: 'Kyoto temple and station cluster for dense map testing.',
+  },
+  {
+    name: 'Nara Park',
+    latitude: 34.6851,
+    longitude: 135.843,
+    category: 'Park',
+    note: 'Nara park and temple cluster for dense map testing.',
+  },
+  {
+    name: 'Osaka Namba',
+    latitude: 34.6687,
+    longitude: 135.5019,
+    category: 'Neighborhood',
+    note: 'Osaka food and nightlife cluster for dense map testing.',
+  },
+  {
+    name: 'Kobe Harborland',
+    latitude: 34.6805,
+    longitude: 135.1866,
+    category: 'Attraction',
+    note: 'Kobe waterfront cluster for dense map testing.',
+  },
+  {
+    name: 'Hiroshima Peace Park',
+    latitude: 34.3955,
+    longitude: 132.4536,
+    category: 'Attraction',
+    note: 'Hiroshima city cluster for dense map testing.',
+  },
+  {
+    name: 'Hakata Station',
+    latitude: 33.5904,
+    longitude: 130.4206,
+    category: 'Transit',
+    note: 'Fukuoka rail and food cluster for dense map testing.',
+  },
+  {
+    name: 'Kagoshima Tenmonkan',
+    latitude: 31.5905,
+    longitude: 130.554,
+    category: 'Neighborhood',
+    note: 'Southern Kyushu city cluster for dense map testing.',
+  },
+  {
+    name: 'Naha Kokusai Dori',
+    latitude: 26.2145,
+    longitude: 127.6792,
+    category: 'Neighborhood',
+    note: 'Okinawa city and island cluster for dense map testing.',
+  },
+];
+
+const japanDensityOffsets = [
+  { latitude: 0, longitude: 0 },
+  { latitude: 0.018, longitude: 0.022 },
+  { latitude: -0.016, longitude: 0.019 },
+  { latitude: 0.014, longitude: -0.024 },
+  { latitude: -0.021, longitude: -0.015 },
+  { latitude: 0.032, longitude: 0.004 },
+  { latitude: -0.029, longitude: 0.007 },
+  { latitude: 0.006, longitude: 0.036 },
+  { latitude: -0.004, longitude: -0.038 },
+  { latitude: 0.041, longitude: -0.031 },
+];
+
+const japanDensitySampleLocations = createJapanDensitySampleLocations();
+
+function createJapanDensitySampleLocations(): CreateLocationInput[] {
+  return japanDensityAnchors.flatMap((anchor) =>
+    japanDensityOffsets.map((offset, index) => {
+      const markerNumber = String(index + 1).padStart(2, '0');
+      const name = `${anchor.name} Marker ${markerNumber}`;
+      const seed = `japan-${slugify(anchor.name)}-${markerNumber}`;
+
+      return {
+        name,
+        country: 'Japan',
+        latitude: roundCoordinate(anchor.latitude + offset.latitude),
+        longitude: roundCoordinate(anchor.longitude + offset.longitude),
+        category: anchor.category,
+        googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name}, Japan`)}`,
+        notes: `Sample density record. ${anchor.note}`,
+        photos: [{ uri: samplePhoto(seed), caption: `${name} sample photo` }],
+      };
+    })
+  );
+}
+
+function roundCoordinate(value: number) {
+  return Number(value.toFixed(5));
+}
+
+function slugify(value: string) {
+  return value.toLocaleLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 export const sampleLocations: CreateLocationInput[] = [
   {
     name: 'Tokyo Tower',
@@ -101,6 +296,7 @@ export const sampleLocations: CreateLocationInput[] = [
     notes: 'Sample record. Busy crossing, cafes, shops, and night lights.',
     photos: [{ uri: samplePhoto('shibuya-crossing'), caption: 'Shibuya sample photo' }],
   },
+  ...japanDensitySampleLocations,
   {
     name: 'Eiffel Tower',
     country: 'France',
