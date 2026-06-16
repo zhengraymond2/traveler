@@ -22,6 +22,7 @@ type CountryRegionDropdownProps = {
 export function CountryRegionDropdown({ savedRegions, value, onChange }: CountryRegionDropdownProps) {
   const [searchText, setSearchText] = React.useState('');
   const dropdownRef = React.useRef<IDropdownRef>(null);
+  const searchInputRef = React.useRef<React.ElementRef<typeof NativeTextInput>>(null);
   const recentRegion = React.useMemo(() => getMostRecentRegion(savedRegions), [savedRegions]);
   const baseOptions = React.useMemo(
     () => buildCountryRegionOptions({ recentRegion, savedRegions, searchText: '', selectedRegion: value }),
@@ -31,6 +32,7 @@ export function CountryRegionDropdown({ savedRegions, value, onChange }: Country
     () => buildCountryRegionOptions({ recentRegion, savedRegions, searchText, selectedRegion: value }),
     [recentRegion, savedRegions, searchText, value]
   );
+  const topMatchingValue = React.useMemo(() => getTopMatchingValue(options, searchText), [options, searchText]);
 
   function handleSearchTextChange(text: string) {
     const normalizedText = text.trim();
@@ -55,6 +57,10 @@ export function CountryRegionDropdown({ savedRegions, value, onChange }: Country
   function handleSelectCountryRegion(option: CountryRegionOption) {
     setSearchText(option.value);
     onChange(option.value);
+  }
+
+  function handleDropdownFocus() {
+    setTimeout(() => searchInputRef.current?.focus(), 80);
   }
 
   function handleSubmitSearchText() {
@@ -96,12 +102,15 @@ export function CountryRegionDropdown({ savedRegions, value, onChange }: Country
         mode="default"
         onChange={handleSelectCountryRegion}
         onChangeText={handleSearchTextChange}
+        onFocus={handleDropdownFocus}
         placeholder="Japan, Portugal, Mexico City..."
         placeholderStyle={styles.placeholderText}
         renderInputSearch={(onSearch) => (
           <NativeTextInput
+            ref={searchInputRef}
             autoCapitalize="words"
             autoCorrect={false}
+            autoFocus
             placeholder="Search or type a custom region"
             placeholderTextColor={AppColors.textTertiary}
             returnKeyType="done"
@@ -112,7 +121,7 @@ export function CountryRegionDropdown({ savedRegions, value, onChange }: Country
             onSubmitEditing={handleSubmitSearchText}
           />
         )}
-        renderItem={renderCountryRegionItem}
+        renderItem={(item) => renderCountryRegionItem(item, item.value === topMatchingValue)}
         search
         searchField="label"
         searchPlaceholder="Search or type a custom region"
@@ -126,10 +135,10 @@ export function CountryRegionDropdown({ savedRegions, value, onChange }: Country
   );
 }
 
-function renderCountryRegionItem(item: CountryRegionOption) {
+function renderCountryRegionItem(item: CountryRegionOption, isTopMatch: boolean) {
   return (
     <View>
-      <View style={styles.row}>
+      <View style={[styles.row, isTopMatch && styles.topMatchRow]}>
         <View style={styles.rowText}>
           <Text selectable={false} variant="bodyLarge" numberOfLines={1} style={styles.rowLabel}>
             {item.label}
@@ -149,6 +158,15 @@ function renderCountryRegionItem(item: CountryRegionOption) {
       {item.isRecent ? <View style={styles.recentDivider} /> : null}
     </View>
   );
+}
+
+function getTopMatchingValue(options: CountryRegionOption[], searchText: string) {
+  const normalizedSearch = normalizeSearchText(searchText);
+  if (!normalizedSearch) {
+    return undefined;
+  }
+
+  return options.find((option) => normalizeSearchText(option.label).includes(normalizedSearch))?.value;
 }
 
 function normalizeSearchText(value: string) {
@@ -208,6 +226,9 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
+  },
+  topMatchRow: {
+    backgroundColor: AppColors.surfaceMuted,
   },
   rowText: {
     flex: 1,
