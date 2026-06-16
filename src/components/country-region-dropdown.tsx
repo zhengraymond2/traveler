@@ -1,0 +1,204 @@
+import * as React from 'react';
+import { StyleSheet, TextInput as NativeTextInput, View } from 'react-native';
+import { Dropdown } from 'react-native-element-dropdown';
+import { Text } from 'react-native-paper';
+
+import { AppColors } from '@/constants/theme';
+import {
+  buildCountryRegionOptions,
+  getMatchingCountryRegion,
+  getMostRecentRegion,
+  hasCountryRegionMatch,
+  type CountryRegionOption,
+} from '@/data/country-region-options';
+import type { Location } from '@/db/schema';
+
+type CountryRegionDropdownProps = {
+  savedRegions: Location[];
+  value: string;
+  onChange: (country: string) => void;
+};
+
+export function CountryRegionDropdown({ savedRegions, value, onChange }: CountryRegionDropdownProps) {
+  const [searchText, setSearchText] = React.useState('');
+  const recentRegion = React.useMemo(() => getMostRecentRegion(savedRegions), [savedRegions]);
+  const baseOptions = React.useMemo(
+    () => buildCountryRegionOptions({ recentRegion, savedRegions, searchText: '' }),
+    [recentRegion, savedRegions]
+  );
+  const options = React.useMemo(
+    () => buildCountryRegionOptions({ recentRegion, savedRegions, searchText }),
+    [recentRegion, savedRegions, searchText]
+  );
+
+  function handleSearchTextChange(text: string) {
+    const normalizedText = text.trim();
+    const exactCountryMatch = getMatchingCountryRegion(normalizedText);
+
+    setSearchText(text);
+
+    if (!normalizedText) {
+      onChange('');
+      return;
+    }
+
+    if (exactCountryMatch) {
+      onChange(exactCountryMatch.value);
+      return;
+    }
+
+    if (!hasCountryRegionMatch(baseOptions, normalizedText)) {
+      onChange(normalizedText);
+    }
+  }
+
+  function handleSelectCountryRegion(option: CountryRegionOption) {
+    setSearchText(option.value);
+    onChange(option.value);
+  }
+
+  return (
+    <View style={styles.field}>
+      <Text selectable variant="labelLarge" style={styles.label}>
+        Country or region
+      </Text>
+      <Dropdown
+        accessibilityLabel="Country or region"
+        activeColor={AppColors.surfacePressed}
+        autoScroll={false}
+        containerStyle={styles.menu}
+        data={options}
+        dropdownPosition="auto"
+        flatListProps={{ keyboardShouldPersistTaps: 'handled' }}
+        inputSearchStyle={styles.searchInput}
+        itemContainerStyle={styles.itemContainer}
+        itemTextStyle={styles.itemText}
+        keyboardAvoiding
+        labelField="label"
+        maxHeight={360}
+        mode="default"
+        onChange={handleSelectCountryRegion}
+        placeholder="Japan, Portugal, Mexico City..."
+        placeholderStyle={styles.placeholderText}
+        renderInputSearch={(onSearch) => (
+          <NativeTextInput
+            autoCapitalize="words"
+            autoCorrect={false}
+            placeholder="Search or type a custom region"
+            placeholderTextColor={AppColors.textTertiary}
+            style={styles.searchInput}
+            value={searchText}
+            onChangeText={(text) => {
+              handleSearchTextChange(text);
+              onSearch(text);
+            }}
+          />
+        )}
+        renderItem={renderCountryRegionItem}
+        search
+        searchField="label"
+        searchPlaceholder="Search or type a custom region"
+        searchPlaceholderTextColor={AppColors.textTertiary}
+        selectedTextStyle={styles.selectedText}
+        style={styles.dropdown}
+        value={value}
+        valueField="value"
+      />
+    </View>
+  );
+}
+
+function renderCountryRegionItem(item: CountryRegionOption) {
+  return (
+    <View>
+      <View style={styles.row}>
+        <View style={styles.rowText}>
+          <Text selectable={false} variant="bodyLarge" numberOfLines={1} style={styles.rowLabel}>
+            {item.label}
+          </Text>
+          {item.detail ? (
+            <Text selectable={false} variant="bodySmall" numberOfLines={1} style={styles.rowDetail}>
+              {item.detail}
+            </Text>
+          ) : null}
+        </View>
+        {item.isRecent ? (
+          <Text selectable={false} variant="labelSmall" style={styles.recentText}>
+            recent
+          </Text>
+        ) : null}
+      </View>
+      {item.isRecent ? <View style={styles.recentDivider} /> : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  field: {
+    gap: 8,
+  },
+  label: {
+    color: AppColors.text,
+  },
+  dropdown: {
+    height: 56,
+    borderWidth: 1,
+    borderRadius: 4,
+    borderColor: AppColors.outline,
+    paddingHorizontal: 14,
+    backgroundColor: AppColors.surface,
+  },
+  menu: {
+    overflow: 'hidden',
+    borderRadius: 8,
+    borderColor: AppColors.surfaceVariant,
+    backgroundColor: AppColors.surface,
+  },
+  placeholderText: {
+    color: AppColors.textMuted,
+    fontSize: 16,
+  },
+  selectedText: {
+    color: AppColors.text,
+    fontSize: 16,
+  },
+  itemContainer: {
+    backgroundColor: AppColors.surface,
+  },
+  itemText: {
+    color: AppColors.text,
+  },
+  searchInput: {
+    height: 46,
+    paddingHorizontal: 14,
+    color: AppColors.text,
+    fontSize: 16,
+    backgroundColor: AppColors.surface,
+  },
+  row: {
+    minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  rowText: {
+    flex: 1,
+    gap: 2,
+  },
+  rowLabel: {
+    color: AppColors.text,
+  },
+  rowDetail: {
+    color: AppColors.textMuted,
+  },
+  recentText: {
+    color: AppColors.textTertiary,
+  },
+  recentDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 16,
+    backgroundColor: AppColors.surfaceVariant,
+  },
+});

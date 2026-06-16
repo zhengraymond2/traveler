@@ -34,6 +34,7 @@ export const AppColors = {
   textSecondary: '#6f5f61',
   textMuted: '#7c6c6f',
   textSubtle: '#5b4b4e',
+  textTertiary: '#9a8c8f',
   bodyText: '#423438',
   outline: '#8a7477',
   divider: '#ffffff',
