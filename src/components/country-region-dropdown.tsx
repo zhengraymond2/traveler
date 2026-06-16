@@ -23,12 +23,12 @@ export function CountryRegionDropdown({ savedRegions, value, onChange }: Country
   const [searchText, setSearchText] = React.useState('');
   const recentRegion = React.useMemo(() => getMostRecentRegion(savedRegions), [savedRegions]);
   const baseOptions = React.useMemo(
-    () => buildCountryRegionOptions({ recentRegion, savedRegions, searchText: '' }),
-    [recentRegion, savedRegions]
+    () => buildCountryRegionOptions({ recentRegion, savedRegions, searchText: '', selectedRegion: value }),
+    [recentRegion, savedRegions, value]
   );
   const options = React.useMemo(
-    () => buildCountryRegionOptions({ recentRegion, savedRegions, searchText }),
-    [recentRegion, savedRegions, searchText]
+    () => buildCountryRegionOptions({ recentRegion, savedRegions, searchText, selectedRegion: value }),
+    [recentRegion, savedRegions, searchText, value]
   );
 
   function handleSearchTextChange(text: string) {
@@ -38,7 +38,6 @@ export function CountryRegionDropdown({ savedRegions, value, onChange }: Country
     setSearchText(text);
 
     if (!normalizedText) {
-      onChange('');
       return;
     }
 

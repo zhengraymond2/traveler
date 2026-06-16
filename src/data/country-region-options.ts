@@ -15,6 +15,7 @@ type SavedRegionRecord = {
 
 type BuildCountryRegionOptionsInput = {
   recentRegion?: string;
+  selectedRegion?: string;
   savedRegions: SavedRegionRecord[];
   searchText: string;
 };
@@ -34,13 +35,15 @@ const worldCountryKeys = new Set(worldCountryOptions.map((country) => normalizeK
 
 export function buildCountryRegionOptions({
   recentRegion,
+  selectedRegion,
   savedRegions,
   searchText,
 }: BuildCountryRegionOptionsInput): CountryRegionOption[] {
   const customRegionOptions = getCustomRegionOptions(savedRegions);
   const baseOptions = [...worldCountryOptions, ...customRegionOptions].sort(compareOptionsByLabel);
   const typedOption = getTypedCustomOption(baseOptions, searchText);
-  const options = typedOption ? [typedOption, ...baseOptions] : baseOptions;
+  const selectedOption = getSelectedCustomOption(baseOptions, selectedRegion);
+  const options = [typedOption, selectedOption, ...baseOptions].filter(isCountryRegionOption);
   const recentOption = getRecentOption(options, recentRegion);
 
   if (!recentOption) {
@@ -115,6 +118,20 @@ function getTypedCustomOption(options: CountryRegionOption[], searchText: string
   } satisfies CountryRegionOption;
 }
 
+function getSelectedCustomOption(options: CountryRegionOption[], selectedRegion: string | undefined) {
+  const selectedValue = selectedRegion?.trim();
+  if (!selectedValue || hasCountryRegionMatch(options, selectedValue)) {
+    return undefined;
+  }
+
+  return {
+    detail: 'Custom region',
+    label: selectedValue,
+    source: 'custom',
+    value: selectedValue,
+  } satisfies CountryRegionOption;
+}
+
 function getRecentOption(options: CountryRegionOption[], recentRegion: string | undefined) {
   const recentKey = normalizeKey(recentRegion);
   if (!recentKey) {
@@ -129,6 +146,10 @@ function getRecentOption(options: CountryRegionOption[], recentRegion: string | 
       value: recentRegion?.trim() ?? '',
     }
   );
+}
+
+function isCountryRegionOption(option: CountryRegionOption | undefined): option is CountryRegionOption {
+  return Boolean(option);
 }
 
 function itemText(option: CountryRegionOption) {
