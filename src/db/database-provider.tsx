@@ -6,6 +6,7 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import migrations from '../../drizzle/migrations';
 import { db } from './client';
 import { createLocationRepository, type LocationRepository } from './repository';
+import { seedSampleLocations } from './sample-locations';
 
 type DatabaseContextValue = LocationRepository;
 
@@ -16,8 +17,34 @@ const repository = createLocationRepository(db);
 export function DatabaseProvider({ children }: React.PropsWithChildren) {
   const theme = useTheme();
   const { success, error } = useMigrations(db, migrations);
+  const [isSeeded, setIsSeeded] = React.useState(false);
+  const [seedError, setSeedError] = React.useState<Error | null>(null);
 
-  if (!success && !error) {
+  React.useEffect(() => {
+    if (!success || error) {
+      return;
+    }
+
+    let isActive = true;
+
+    seedSampleLocations(repository)
+      .then(() => {
+        if (isActive) {
+          setIsSeeded(true);
+        }
+      })
+      .catch((caughtError: unknown) => {
+        if (isActive) {
+          setSeedError(caughtError instanceof Error ? caughtError : new Error('Unable to seed sample locations.'));
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [error, success]);
+
+  if ((!success && !error) || (success && !isSeeded && !seedError)) {
     return (
       <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator />
@@ -25,11 +52,11 @@ export function DatabaseProvider({ children }: React.PropsWithChildren) {
     );
   }
 
-  if (error) {
+  if (error || seedError) {
     return (
       <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
         <Text selectable variant="bodyMedium">
-          {error.message}
+          {(error ?? seedError)?.message}
         </Text>
       </View>
     );
