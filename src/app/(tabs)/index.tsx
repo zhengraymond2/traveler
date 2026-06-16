@@ -1,17 +1,47 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
 
 import { WorldMap } from '@/components/world-map';
 import { AppColors } from '@/constants/theme';
+import { useDatabase } from '@/db/database-provider';
+import type { LocationWithPhotos } from '@/db/repository';
 
 export default function MapScreen() {
   const theme = useTheme();
+  const { reader } = useDatabase();
+  const [locations, setLocations] = React.useState<LocationWithPhotos[]>([]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+
+      async function loadLocations() {
+        try {
+          const savedLocations = await reader.listLocationsWithPhotos();
+          if (isActive) {
+            setLocations(savedLocations);
+          }
+        } catch {
+          if (isActive) {
+            setLocations([]);
+          }
+        }
+      }
+
+      loadLocations();
+
+      return () => {
+        isActive = false;
+      };
+    }, [reader])
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.map}>
-        <WorldMap />
+        <WorldMap locations={locations} />
         <Pressable
           accessibilityLabel="Add source"
           accessibilityRole="button"

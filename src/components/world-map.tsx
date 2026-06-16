@@ -2,8 +2,13 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
 import { AppColors } from '@/constants/theme';
+import type { LocationWithPhotos } from '@/db/repository';
 
-export function WorldMap() {
+type WorldMapProps = {
+  locations?: LocationWithPhotos[];
+};
+
+export function WorldMap(_props: WorldMapProps) {
   return (
     <View style={styles.fallback}>
       <Text selectable variant="bodyMedium" style={styles.fallbackText}>
