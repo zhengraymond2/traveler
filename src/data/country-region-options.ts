@@ -1,0 +1,148 @@
+import countries from 'world-countries';
+
+export type CountryRegionOption = {
+  detail?: string;
+  isRecent?: boolean;
+  label: string;
+  source: 'country' | 'custom' | 'typed';
+  value: string;
+};
+
+type SavedRegionRecord = {
+  country: string | null;
+  createdAt: Date;
+};
+
+type BuildCountryRegionOptionsInput = {
+  recentRegion?: string;
+  savedRegions: SavedRegionRecord[];
+  searchText: string;
+};
+
+const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
+
+const worldCountryOptions = countries
+  .map<CountryRegionOption>((country) => ({
+    detail: [country.region, country.subregion].filter(Boolean).join(' · '),
+    label: country.name.common,
+    source: 'country',
+    value: country.name.common,
+  }))
+  .sort(compareOptionsByLabel);
+
+const worldCountryKeys = new Set(worldCountryOptions.map((country) => normalizeKey(country.value)));
+
+export function buildCountryRegionOptions({
+  recentRegion,
+  savedRegions,
+  searchText,
+}: BuildCountryRegionOptionsInput): CountryRegionOption[] {
+  const customRegionOptions = getCustomRegionOptions(savedRegions);
+  const baseOptions = [...worldCountryOptions, ...customRegionOptions].sort(compareOptionsByLabel);
+  const typedOption = getTypedCustomOption(baseOptions, searchText);
+  const options = typedOption ? [typedOption, ...baseOptions] : baseOptions;
+  const recentOption = getRecentOption(options, recentRegion);
+
+  if (!recentOption) {
+    return options;
+  }
+
+  return [
+    {
+      ...recentOption,
+      isRecent: true,
+    },
+    ...options.filter((option) => normalizeKey(option.value) !== normalizeKey(recentOption.value)),
+  ];
+}
+
+export function getMostRecentRegion(savedRegions: SavedRegionRecord[]) {
+  return [...savedRegions]
+    .sort((first, second) => second.createdAt.getTime() - first.createdAt.getTime())
+    .find((record) => record.country?.trim())?.country?.trim();
+}
+
+export function getMatchingCountryRegion(searchText: string) {
+  const normalizedSearch = normalizeKey(searchText);
+  if (!normalizedSearch) {
+    return undefined;
+  }
+
+  return worldCountryOptions.find((option) => normalizeKey(option.label) === normalizedSearch);
+}
+
+export function hasCountryRegionMatch(options: CountryRegionOption[], searchText: string) {
+  const normalizedSearch = normalizeKey(searchText);
+  if (!normalizedSearch) {
+    return false;
+  }
+
+  return options.some((option) => itemMatchesSearch(option, normalizedSearch));
+}
+
+function getCustomRegionOptions(savedRegions: SavedRegionRecord[]) {
+  const customRegions = new Map<string, string>();
+
+  for (const record of savedRegions) {
+    const region = record.country?.trim();
+    const key = normalizeKey(region);
+    if (!region || !key || worldCountryKeys.has(key) || customRegions.has(key)) {
+      continue;
+    }
+
+    customRegions.set(key, region);
+  }
+
+  return Array.from(customRegions.values()).map<CountryRegionOption>((region) => ({
+    detail: 'Custom region',
+    label: region,
+    source: 'custom',
+    value: region,
+  }));
+}
+
+function getTypedCustomOption(options: CountryRegionOption[], searchText: string) {
+  const typedRegion = searchText.trim();
+  if (!typedRegion || hasCountryRegionMatch(options, typedRegion)) {
+    return undefined;
+  }
+
+  return {
+    detail: 'Custom region',
+    label: typedRegion,
+    source: 'typed',
+    value: typedRegion,
+  } satisfies CountryRegionOption;
+}
+
+function getRecentOption(options: CountryRegionOption[], recentRegion: string | undefined) {
+  const recentKey = normalizeKey(recentRegion);
+  if (!recentKey) {
+    return undefined;
+  }
+
+  return (
+    options.find((option) => normalizeKey(option.value) === recentKey) ?? {
+      detail: 'Custom region',
+      label: recentRegion?.trim() ?? '',
+      source: 'custom',
+      value: recentRegion?.trim() ?? '',
+    }
+  );
+}
+
+function itemText(option: CountryRegionOption) {
+  return `${option.label} ${option.detail ?? ''}`;
+}
+
+function itemMatchesSearch(option: CountryRegionOption, normalizedSearch: string) {
+  return normalizeKey(itemText(option)).includes(normalizedSearch);
+}
+
+function compareOptionsByLabel(first: CountryRegionOption, second: CountryRegionOption) {
+  return collator.compare(first.label, second.label);
+}
+
+function normalizeKey(value: string | null | undefined) {
+  return value?.trim().toLocaleLowerCase() ?? '';
+}
