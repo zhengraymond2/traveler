@@ -1,18 +1,21 @@
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import * as React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Divider, Surface, Text, TextInput, useTheme } from 'react-native-paper';
 
+import { CountryRegionDropdown } from '@/components/country-region-dropdown';
 import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
+import type { Location } from '@/db/schema';
 
 export default function AddSourceScreen() {
   const theme = useTheme();
-  const { writer } = useDatabase();
+  const { reader, writer } = useDatabase();
   const [locationName, setLocationName] = React.useState('');
   const [country, setCountry] = React.useState('');
+  const [savedRegions, setSavedRegions] = React.useState<Location[]>([]);
   const [gpsCoordinates, setGpsCoordinates] = React.useState('');
   const [googleMapsUrl, setGoogleMapsUrl] = React.useState('');
   const [instagramUrl, setInstagramUrl] = React.useState('');
@@ -20,6 +23,31 @@ export default function AddSourceScreen() {
   const [notes, setNotes] = React.useState('');
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+
+      async function loadSavedRegions() {
+        try {
+          const savedLocations = await reader.listLocations();
+          if (isActive) {
+            setSavedRegions(savedLocations);
+          }
+        } catch (error) {
+          if (isActive) {
+            setErrorMessage(error instanceof Error ? error.message : 'Unable to load saved regions.');
+          }
+        }
+      }
+
+      loadSavedRegions();
+
+      return () => {
+        isActive = false;
+      };
+    }, [reader])
+  );
 
   async function handleSubmit() {
     setIsSaving(true);
@@ -116,13 +144,7 @@ export default function AddSourceScreen() {
             onChangeText={setLocationName}
           />
 
-          <TextInput
-            mode="outlined"
-            label="Country or region"
-            placeholder="Japan, Portugal, Mexico City, Basque Country..."
-            value={country}
-            onChangeText={setCountry}
-          />
+          <CountryRegionDropdown savedRegions={savedRegions} value={country} onChange={setCountry} />
 
           <TextInput
             mode="outlined"
