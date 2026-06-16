@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { StyleSheet, TextInput as NativeTextInput, View } from 'react-native';
-import { Dropdown } from 'react-native-element-dropdown';
+import { Keyboard, StyleSheet, TextInput as NativeTextInput, View } from 'react-native';
+import { Dropdown, type IDropdownRef } from 'react-native-element-dropdown';
 import { Text } from 'react-native-paper';
 
 import { AppColors } from '@/constants/theme';
@@ -21,6 +21,7 @@ type CountryRegionDropdownProps = {
 
 export function CountryRegionDropdown({ savedRegions, value, onChange }: CountryRegionDropdownProps) {
   const [searchText, setSearchText] = React.useState('');
+  const dropdownRef = React.useRef<IDropdownRef>(null);
   const recentRegion = React.useMemo(() => getMostRecentRegion(savedRegions), [savedRegions]);
   const baseOptions = React.useMemo(
     () => buildCountryRegionOptions({ recentRegion, savedRegions, searchText: '', selectedRegion: value }),
@@ -56,12 +57,29 @@ export function CountryRegionDropdown({ savedRegions, value, onChange }: Country
     onChange(option.value);
   }
 
+  function handleSubmitSearchText() {
+    const normalizedSearch = normalizeSearchText(searchText);
+    const selectedOption = normalizedSearch
+      ? options.find((option) => normalizeSearchText(option.label).includes(normalizedSearch))
+      : undefined;
+    const submittedValue = selectedOption?.value ?? searchText.trim();
+
+    if (submittedValue) {
+      setSearchText(submittedValue);
+      onChange(submittedValue);
+    }
+
+    dropdownRef.current?.close();
+    Keyboard.dismiss();
+  }
+
   return (
     <View style={styles.field}>
       <Text selectable variant="labelLarge" style={styles.label}>
         Country or region
       </Text>
       <Dropdown
+        ref={dropdownRef}
         accessibilityLabel="Country or region"
         activeColor={AppColors.surfacePressed}
         autoScroll={false}
@@ -86,9 +104,12 @@ export function CountryRegionDropdown({ savedRegions, value, onChange }: Country
             autoCorrect={false}
             placeholder="Search or type a custom region"
             placeholderTextColor={AppColors.textTertiary}
+            returnKeyType="done"
             style={styles.searchInput}
+            submitBehavior="blurAndSubmit"
             value={searchText}
             onChangeText={onSearch}
+            onSubmitEditing={handleSubmitSearchText}
           />
         )}
         renderItem={renderCountryRegionItem}
@@ -128,6 +149,14 @@ function renderCountryRegionItem(item: CountryRegionOption) {
       {item.isRecent ? <View style={styles.recentDivider} /> : null}
     </View>
   );
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .toLocaleLowerCase()
+    .replace(/\s/g, '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 }
 
 const styles = StyleSheet.create({
