@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import * as React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { AppColors } from '@/constants/theme';
 import type { LocationWithPhotos } from '@/db/repository';
@@ -189,7 +190,10 @@ type CoordinateLocation = LocationWithPhotos & { latitude: number; longitude: nu
 
 function LocationPreviewDialog({ location, onClose }: { location: CoordinateLocation; onClose: () => void }) {
   return (
-    <View style={styles.previewDialog}>
+    <Animated.View
+      entering={FadeIn.duration(400)}
+      exiting={FadeOut.duration(250)}
+      style={styles.previewDialog}>
       <BlurredHeader>
         <View style={styles.previewHeaderContent}>
           <Text selectable variant="titleLarge" numberOfLines={2} style={styles.previewTitle}>
@@ -222,7 +226,7 @@ function LocationPreviewDialog({ location, onClose }: { location: CoordinateLoca
       </Pressable>
 
       <View style={styles.previewGallery}>{getGalleryCells(location).map(renderGalleryCell)}</View>
-    </View>
+    </Animated.View>
   );
 }
 
