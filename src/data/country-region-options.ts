@@ -1,10 +1,12 @@
 import countries from 'world-countries';
 
+import { getMatchingTravelRegion, getTravelRegions, normalizeRegionKey } from '@/constants/travel-regions';
+
 export type CountryRegionOption = {
   detail?: string;
   isRecent?: boolean;
   label: string;
-  source: 'country' | 'custom' | 'typed';
+  source: 'country' | 'custom' | 'region' | 'typed';
   value: string;
 };
 
@@ -31,7 +33,17 @@ const worldCountryOptions = countries
   }))
   .sort(compareOptionsByLabel);
 
+const travelRegionOptions = getTravelRegions()
+  .map<CountryRegionOption>((region) => ({
+    detail: 'Travel region',
+    label: region.label,
+    source: 'region',
+    value: region.label,
+  }))
+  .sort(compareOptionsByLabel);
+
 const worldCountryKeys = new Set(worldCountryOptions.map((country) => normalizeKey(country.value)));
+const travelRegionKeys = new Set(travelRegionOptions.map((region) => normalizeKey(region.value)));
 
 export function buildCountryRegionOptions({
   recentRegion,
@@ -40,10 +52,12 @@ export function buildCountryRegionOptions({
   searchText,
 }: BuildCountryRegionOptionsInput): CountryRegionOption[] {
   const customRegionOptions = getCustomRegionOptions(savedRegions);
-  const baseOptions = [...worldCountryOptions, ...customRegionOptions].sort(compareOptionsByLabel);
+  const baseOptions = [...worldCountryOptions, ...travelRegionOptions, ...customRegionOptions].sort(compareOptionsByLabel);
   const typedOption = getTypedCustomOption(baseOptions, searchText);
   const selectedOption = getSelectedCustomOption(baseOptions, selectedRegion);
-  const options = [typedOption, selectedOption, ...baseOptions].filter(isCountryRegionOption);
+  const options = [typedOption, selectedOption, ...baseOptions]
+    .filter(isCountryRegionOption)
+    .sort((first, second) => compareOptionsForSearch(first, second, searchText));
   const recentOption = getRecentOption(options, recentRegion);
 
   if (!recentOption) {
@@ -71,6 +85,11 @@ export function getMatchingCountryRegion(searchText: string) {
     return undefined;
   }
 
+  const travelRegion = getMatchingTravelRegion(searchText);
+  if (travelRegion) {
+    return travelRegionOptions.find((option) => normalizeKey(option.label) === normalizeRegionKey(travelRegion.label));
+  }
+
   return worldCountryOptions.find((option) => normalizeKey(option.label) === normalizedSearch);
 }
 
@@ -89,7 +108,7 @@ function getCustomRegionOptions(savedRegions: SavedRegionRecord[]) {
   for (const record of savedRegions) {
     const region = record.country?.trim();
     const key = normalizeKey(region);
-    if (!region || !key || worldCountryKeys.has(key) || customRegions.has(key)) {
+    if (!region || !key || worldCountryKeys.has(key) || travelRegionKeys.has(key) || customRegions.has(key)) {
       continue;
     }
 
@@ -162,6 +181,35 @@ function itemMatchesSearch(option: CountryRegionOption, normalizedSearch: string
 
 function compareOptionsByLabel(first: CountryRegionOption, second: CountryRegionOption) {
   return collator.compare(first.label, second.label);
+}
+
+function compareOptionsForSearch(first: CountryRegionOption, second: CountryRegionOption, searchText: string) {
+  const normalizedSearch = normalizeKey(searchText);
+  if (!normalizedSearch) {
+    return compareOptionsByLabel(first, second);
+  }
+
+  const firstRank = getSearchRank(first, normalizedSearch);
+  const secondRank = getSearchRank(second, normalizedSearch);
+  if (firstRank !== secondRank) {
+    return firstRank - secondRank;
+  }
+
+  return compareOptionsByLabel(first, second);
+}
+
+function getSearchRank(option: CountryRegionOption, normalizedSearch: string) {
+  const label = normalizeKey(option.label);
+  if (label === normalizedSearch) {
+    return 0;
+  }
+  if (label.startsWith(normalizedSearch)) {
+    return 1;
+  }
+  if (itemMatchesSearch(option, normalizedSearch)) {
+    return 2;
+  }
+  return 3;
 }
 
 function normalizeKey(value: string | null | undefined) {
