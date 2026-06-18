@@ -4,16 +4,14 @@ import type { AppDatabase } from './client';
 import { locationPhotos, locations, type Location, type LocationPhoto } from './schema';
 
 export async function dedupeLocationRecord(database: AppDatabase, record: Location): Promise<Location> {
-  const nameKey = normalizeDedupeText(record.name);
-  if (!nameKey) {
+  const recordKey = getDedupeLocationKey(record);
+  if (!recordKey) {
     return record;
   }
 
-  const countryKey = normalizeDedupeText(record.country);
   const allLocations = await database.select().from(locations).orderBy(asc(locations.createdAt));
   const duplicateLocations = allLocations.filter(
-    (location) =>
-      normalizeDedupeText(location.name) === nameKey && normalizeDedupeText(location.country) === countryKey
+    (location) => getDedupeLocationKey(location) === recordKey
   );
 
   if (duplicateLocations.length <= 1) {
@@ -94,7 +92,16 @@ function collectUniqueNotes(notes: (string | null)[]) {
   return uniqueNotes.length ? uniqueNotes.join('\n\n') : null;
 }
 
-function normalizeDedupeText(value: string | null) {
+export function getDedupeLocationKey(record: Pick<Location, 'country' | 'name'>) {
+  const nameKey = normalizeDedupeText(record.name);
+  if (!nameKey) {
+    return null;
+  }
+
+  return `${nameKey}:${normalizeDedupeText(record.country) ?? ''}`;
+}
+
+function normalizeDedupeText(value: string | null | undefined) {
   const normalized = value?.trim().toLocaleLowerCase();
   return normalized || null;
 }
