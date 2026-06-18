@@ -1,0 +1,17 @@
+appId: com.zhrray.traveler
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: add-source-button
+- tapOn:
+    id: add-source-button
+- assertVisible:
+    id: add-source-screen
+- assertVisible: New source
+- assertVisible: Location name
+- assertVisible:
+    id: country-region-dropdown
+- tapOn:
+    id: country-region-dropdown
+- assertVisible: Search or type a custom region

@@ -1,0 +1,27 @@
+appId: com.zhrray.traveler
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: add-source-button
+- assertVisible:
+    id: add-source-screen
+- tapOn:
+    id: location-name-input
+- inputText: Maestro Test Cafe
+- tapOn:
+    id: gps-coordinates-input
+- inputText: 37.7749, -122.4194
+- tapOn:
+    id: country-region-dropdown
+- tapOn:
+    id: country-region-search-input
+- inputText: PNW
+- pressKey: Enter
+- tapOn:
+    id: notes-input
+- inputText: Saved by Maestro
+- tapOn:
+    id: save-source-button
+- tapOn: Saved
+- assertVisible: PNW

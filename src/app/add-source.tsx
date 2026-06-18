@@ -119,6 +119,7 @@ export default function AddSourceScreen() {
       />
 
       <ScrollView
+        testID="add-source-screen"
         style={[styles.scrollView, { backgroundColor: theme.colors.background }]}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
@@ -140,6 +141,7 @@ export default function AddSourceScreen() {
           ) : null}
 
           <TextInput
+            testID="location-name-input"
             mode="outlined"
             label="Location name"
             placeholder="Cafe, hike, hotel, museum..."
@@ -150,6 +152,7 @@ export default function AddSourceScreen() {
           <CountryRegionDropdown savedRegions={savedRegions} value={country} onChange={setCountry} />
 
           <TextInput
+            testID="gps-coordinates-input"
             mode="outlined"
             label="GPS coordinates"
             placeholder="37.7749, -122.4194"
@@ -159,6 +162,7 @@ export default function AddSourceScreen() {
           />
 
           <TextInput
+            testID="google-maps-url-input"
             mode="outlined"
             label="Google Maps link"
             placeholder="https://maps.google.com/..."
@@ -170,6 +174,7 @@ export default function AddSourceScreen() {
           />
 
           <TextInput
+            testID="instagram-url-input"
             mode="outlined"
             label="Instagram link"
             placeholder="https://instagram.com/..."
@@ -181,6 +186,7 @@ export default function AddSourceScreen() {
           />
 
           <TextInput
+            testID="trail-map-url-input"
             mode="outlined"
             label="AllTrails or Footpath link"
             placeholder="https://www.alltrails.com/... or https://footpathapp.com/..."
@@ -219,6 +225,7 @@ export default function AddSourceScreen() {
           </View>
 
           <TextInput
+            testID="notes-input"
             multiline
             mode="outlined"
             label="Notes"
@@ -235,6 +242,7 @@ export default function AddSourceScreen() {
               Cancel
             </Button>
             <Button
+              testID="save-source-button"
               mode="contained"
               icon="content-save"
               loading={isSaving}

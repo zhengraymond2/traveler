@@ -73,6 +73,7 @@ export default function MapScreen() {
           accessibilityLabel="Add source"
           accessibilityRole="button"
           hitSlop={12}
+          testID="add-source-button"
           style={({ pressed }) => [
             styles.addButton,
             {

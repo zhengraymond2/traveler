@@ -54,6 +54,7 @@ export default function SavedLocationsScreen() {
 
   return (
     <ScrollView
+      testID="saved-locations-screen"
       style={[styles.scrollView, { backgroundColor: theme.colors.background }]}
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={styles.content}>
@@ -173,7 +174,13 @@ function CountryRow({
   onPress: () => void;
 }) {
   return (
-    <Pressable disabled={isLoading} style={[styles.countryRow, isLoading && styles.countryRowLoading]} onPress={onPress}>
+    <Pressable
+      accessibilityLabel={`Open saved locations for ${country}`}
+      accessibilityRole="button"
+      disabled={isLoading}
+      testID={`saved-country-row-${country}`}
+      style={[styles.countryRow, isLoading && styles.countryRowLoading]}
+      onPress={onPress}>
       {imageUri ? <Image source={{ uri: imageUri }} style={styles.rowImage} contentFit="cover" /> : <View style={styles.rowFallbackOverlay} />}
       <LinearGradient
         colors={[AppColors.overlayTransparent, AppColors.overlaySoft, AppColors.overlayStrong]}

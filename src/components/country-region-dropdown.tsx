@@ -87,6 +87,7 @@ export function CountryRegionDropdown({ savedRegions, value, onChange }: Country
       <Dropdown
         ref={dropdownRef}
         accessibilityLabel="Country or region"
+        testID="country-region-dropdown"
         activeColor={AppColors.surfacePressed}
         autoScroll={false}
         containerStyle={styles.menu}
@@ -108,6 +109,7 @@ export function CountryRegionDropdown({ savedRegions, value, onChange }: Country
         renderInputSearch={(onSearch) => (
           <NativeTextInput
             ref={searchInputRef}
+            testID="country-region-search-input"
             autoCapitalize="words"
             autoCorrect={false}
             autoFocus
