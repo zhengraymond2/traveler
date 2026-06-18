@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { Card, Snackbar, Text, useTheme } from 'react-native-paper';
+import { Button, Card, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
@@ -12,13 +12,16 @@ import type { LocationWithPhotos } from '@/db/repository';
 export default function SavedLocationDetailScreen() {
   const theme = useTheme();
   const { width: windowWidth } = useWindowDimensions();
-  const { reader } = useDatabase();
+  const { reader, writer } = useDatabase();
   const params = useLocalSearchParams<{ id?: string }>();
   const id = normalizeParam(params.id);
   const [location, setLocation] = React.useState<LocationWithPhotos | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [copyMessageVisible, setCopyMessageVisible] = React.useState(false);
+  const [form, setForm] = React.useState<LocationEditForm>(emptyLocationEditForm);
   const galleryGap = 2;
   const galleryItemSize = Math.floor((windowWidth - 32 - galleryGap * 2) / 3);
 
@@ -34,6 +37,8 @@ export default function SavedLocationDetailScreen() {
           const savedLocation = id ? await reader.getLocation(id) : null;
           if (isActive) {
             setLocation(savedLocation);
+            setForm(createEditForm(savedLocation));
+            setIsEditing(false);
           }
         } catch (error) {
           if (isActive) {
@@ -60,6 +65,12 @@ export default function SavedLocationDetailScreen() {
         options={{
           title: location?.name || 'Saved Location',
           headerBackButtonDisplayMode: 'minimal',
+          headerRight: () =>
+            location && !isEditing ? (
+              <Button compact mode="text" onPress={handleStartEditing}>
+                Edit
+              </Button>
+            ) : null,
         }}
       />
 
@@ -91,38 +102,52 @@ export default function SavedLocationDetailScreen() {
 
         {location ? (
           <View style={styles.detail}>
-            <View style={styles.header}>
-              <Text selectable variant="displaySmall" style={styles.title}>
-                {getLocationTitle(location)}
-              </Text>
-              {location.country ? (
-                <Text selectable variant="titleMedium" style={styles.country}>
-                  {location.country}
-                </Text>
-              ) : null}
-              {formatCoordinates(location) ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Copy GPS coordinates"
-                  onPress={() => handleCopyCoordinates(formatCoordinates(location))}>
-                  <Text selectable variant="bodyMedium" style={styles.coordinates}>
-                    {formatCoordinates(location)}
+            {isEditing ? (
+              <LocationEditFormView
+                form={form}
+                isSaving={isSaving}
+                onCancel={handleCancelEditing}
+                onChange={setForm}
+                onSave={handleSaveEditing}
+              />
+            ) : (
+              <>
+                <View style={styles.header}>
+                  <Text selectable variant="displaySmall" style={styles.title}>
+                    {getLocationTitle(location)}
                   </Text>
-                </Pressable>
-              ) : null}
-            </View>
+                  {location.country ? (
+                    <Text selectable variant="titleMedium" style={styles.country}>
+                      {location.country}
+                    </Text>
+                  ) : null}
+                  {formatCoordinates(location) ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Copy GPS coordinates"
+                      onPress={() => handleCopyCoordinates(formatCoordinates(location))}>
+                      <Text selectable variant="bodyMedium" style={styles.coordinates}>
+                        {formatCoordinates(location)}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
 
-            <View style={styles.links}>
-              <DetailLink label="Google Maps" url={getGoogleMapsUrl(location)} />
-              {location.instagramUrl ? <DetailLink label="Instagram" url={location.instagramUrl} /> : null}
-              {location.trailMapUrl ? <DetailLink label="AllTrails / Footpath" url={location.trailMapUrl} /> : null}
-            </View>
+                <View style={styles.links}>
+                  <DetailLink label="Google Maps" url={getGoogleMapsUrl(location)} />
+                  {location.instagramUrl ? <DetailLink label="Instagram" url={location.instagramUrl} /> : null}
+                  {location.trailMapUrl ? (
+                    <DetailLink label="AllTrails / Footpath" url={location.trailMapUrl} />
+                  ) : null}
+                </View>
 
-            {location.notes ? (
-              <Text selectable variant="bodySmall" style={styles.notes}>
-                {location.notes}
-              </Text>
-            ) : null}
+                {location.notes ? (
+                  <Text selectable variant="bodySmall" style={styles.notes}>
+                    {location.notes}
+                  </Text>
+                ) : null}
+              </>
+            )}
 
             {location.photos.length ? (
               <View style={[styles.gallery, { gap: galleryGap }]}>
@@ -163,6 +188,167 @@ export default function SavedLocationDetailScreen() {
     await Clipboard.setStringAsync(value);
     setCopyMessageVisible(true);
   }
+
+  function handleStartEditing() {
+    setErrorMessage(null);
+    setForm(createEditForm(location));
+    setIsEditing(true);
+  }
+
+  function handleCancelEditing() {
+    setErrorMessage(null);
+    setForm(createEditForm(location));
+    setIsEditing(false);
+  }
+
+  async function handleSaveEditing() {
+    if (!location) {
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage(null);
+
+    try {
+      const coordinates = parseEditableCoordinates(form.gpsCoordinates);
+      await writer.updateLocation(location.id, {
+        category: form.category,
+        country: form.country,
+        googleMapsUrl: form.googleMapsUrl,
+        instagramUrl: form.instagramUrl,
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        name: form.name,
+        notes: form.notes,
+        trailMapUrl: form.trailMapUrl,
+      });
+
+      const savedLocation = await reader.getLocation(location.id);
+      setLocation(savedLocation);
+      setForm(createEditForm(savedLocation));
+      setIsEditing(false);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to update saved location.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+}
+
+type LocationEditForm = {
+  category: string;
+  country: string;
+  googleMapsUrl: string;
+  gpsCoordinates: string;
+  instagramUrl: string;
+  name: string;
+  notes: string;
+  trailMapUrl: string;
+};
+
+const emptyLocationEditForm: LocationEditForm = {
+  category: '',
+  country: '',
+  googleMapsUrl: '',
+  gpsCoordinates: '',
+  instagramUrl: '',
+  name: '',
+  notes: '',
+  trailMapUrl: '',
+};
+
+function LocationEditFormView({
+  form,
+  isSaving,
+  onCancel,
+  onChange,
+  onSave,
+}: {
+  form: LocationEditForm;
+  isSaving: boolean;
+  onCancel: () => void;
+  onChange: React.Dispatch<React.SetStateAction<LocationEditForm>>;
+  onSave: () => void;
+}) {
+  function updateForm(field: keyof LocationEditForm) {
+    return (value: string) => {
+      onChange((currentForm) => ({ ...currentForm, [field]: value }));
+    };
+  }
+
+  return (
+    <View style={styles.editForm}>
+      <TextInput
+        mode="outlined"
+        label="Location name"
+        value={form.name}
+        onChangeText={updateForm('name')}
+      />
+      <TextInput
+        mode="outlined"
+        label="Country or region"
+        value={form.country}
+        onChangeText={updateForm('country')}
+      />
+      <TextInput
+        mode="outlined"
+        label="Category"
+        placeholder="Hiking, restaurant, hotel, transit..."
+        value={form.category}
+        onChangeText={updateForm('category')}
+      />
+      <TextInput
+        mode="outlined"
+        label="GPS coordinates"
+        keyboardType="numbers-and-punctuation"
+        value={form.gpsCoordinates}
+        onChangeText={updateForm('gpsCoordinates')}
+      />
+      <TextInput
+        mode="outlined"
+        label="Google Maps link"
+        keyboardType="url"
+        autoCapitalize="none"
+        autoCorrect={false}
+        value={form.googleMapsUrl}
+        onChangeText={updateForm('googleMapsUrl')}
+      />
+      <TextInput
+        mode="outlined"
+        label="Instagram link"
+        keyboardType="url"
+        autoCapitalize="none"
+        autoCorrect={false}
+        value={form.instagramUrl}
+        onChangeText={updateForm('instagramUrl')}
+      />
+      <TextInput
+        mode="outlined"
+        label="AllTrails or Footpath link"
+        keyboardType="url"
+        autoCapitalize="none"
+        autoCorrect={false}
+        value={form.trailMapUrl}
+        onChangeText={updateForm('trailMapUrl')}
+      />
+      <TextInput
+        multiline
+        mode="outlined"
+        label="Notes"
+        style={styles.editNotes}
+        value={form.notes}
+        onChangeText={updateForm('notes')}
+      />
+      <View style={styles.editActions}>
+        <Button mode="text" disabled={isSaving} onPress={onCancel}>
+          Cancel
+        </Button>
+        <Button mode="contained" loading={isSaving} disabled={isSaving} onPress={onSave}>
+          Save
+        </Button>
+      </View>
+    </View>
+  );
 }
 
 function DetailLink({ label, url }: { label: string; url: string }) {
@@ -185,6 +371,48 @@ function formatCoordinates(location: LocationWithPhotos) {
   }
 
   return `(${location.latitude}, ${location.longitude})`;
+}
+
+function formatEditableCoordinates(location: LocationWithPhotos | null) {
+  if (!location || location.latitude == null || location.longitude == null) {
+    return '';
+  }
+
+  return `${location.latitude}, ${location.longitude}`;
+}
+
+function parseEditableCoordinates(value: string) {
+  const normalized = value.trim();
+  if (!normalized) {
+    return { latitude: null, longitude: null };
+  }
+
+  const [latitudeText, longitudeText] = normalized.split(',').map((part) => part.trim());
+  const latitude = Number(latitudeText);
+  const longitude = Number(longitudeText);
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    throw new Error('GPS coordinates should look like "37.7749, -122.4194".');
+  }
+
+  return { latitude, longitude };
+}
+
+function createEditForm(location: LocationWithPhotos | null): LocationEditForm {
+  if (!location) {
+    return emptyLocationEditForm;
+  }
+
+  return {
+    category: location.category ?? '',
+    country: location.country ?? '',
+    googleMapsUrl: location.googleMapsUrl ?? '',
+    gpsCoordinates: formatEditableCoordinates(location),
+    instagramUrl: location.instagramUrl ?? '',
+    name: location.name ?? '',
+    notes: location.notes ?? '',
+    trailMapUrl: location.trailMapUrl ?? '',
+  };
 }
 
 function getLocationTitle(location: LocationWithPhotos) {
@@ -247,6 +475,17 @@ const styles = StyleSheet.create({
   notes: {
     color: AppColors.bodyText,
     lineHeight: 18,
+  },
+  editForm: {
+    gap: 14,
+  },
+  editNotes: {
+    minHeight: 120,
+  },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
   },
   gallery: {
     flexDirection: 'row',

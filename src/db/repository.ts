@@ -17,8 +17,8 @@ export type LocationWithPhotos = Location & {
 
 export type CreateLocationInput = {
   name?: string;
-  latitude?: number;
-  longitude?: number;
+  latitude?: number | null;
+  longitude?: number | null;
   googleMapsUrl?: string;
   instagramUrl?: string;
   trailMapUrl?: string;
