@@ -226,7 +226,10 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
         style={styles.map}
         styleURL={Mapbox.StyleURL.Outdoors}
         projection="globe"
-        compassEnabled={false}
+        compassEnabled
+        compassFadeWhenNorth={false}
+        compassViewPosition={0}
+        compassViewMargins={{ x: 16, y: 64 }}
         scaleBarEnabled={false}
         pitchEnabled
         rotateEnabled
