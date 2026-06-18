@@ -51,6 +51,11 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
 ) {
   const cameraRef = React.useRef<Mapbox.Camera>(null);
   const userCoordinateRef = React.useRef<CoordinatePair | null>(null);
+  const cameraSamplingStateRef = React.useRef({
+    hasCommittedSnapshot: false,
+    hasMovedSinceCommit: true,
+    lastCommittedSnapshot: INITIAL_CAMERA_SNAPSHOT,
+  });
   const [hasLocationPermission, setHasLocationPermission] = React.useState(false);
   const [cameraSnapshot, setCameraSnapshot] = React.useState<MapCameraSnapshot>(INITIAL_CAMERA_SNAPSHOT);
   const [selectedLocation, setSelectedLocation] = React.useState<CoordinateLocation | null>(null);
@@ -163,31 +168,29 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
   );
 
   const handleCameraChanged = React.useCallback((state: MapState) => {
-    setCameraSnapshot((currentSnapshot) => {
-      const zoom = getFiniteZoom(state.properties.zoom);
-      const zoomBucket = getZoomSampleBucket(zoom);
+    const nextSnapshot = createCameraSnapshot(state);
+    const samplingState = cameraSamplingStateRef.current;
 
-      if (currentSnapshot.zoomBucket === zoomBucket) {
-        return currentSnapshot;
-      }
-
-      return {
-        ...currentSnapshot,
-        zoom,
-        zoomBucket,
-      };
-    });
+    if (
+      !samplingState.hasCommittedSnapshot ||
+      !areCameraSnapshotsEqual(samplingState.lastCommittedSnapshot, nextSnapshot)
+    ) {
+      samplingState.hasMovedSinceCommit = true;
+    }
   }, []);
 
   const handleMapIdle = React.useCallback((state: MapState) => {
-    setCameraSnapshot((currentSnapshot) => {
-      const zoom = getFiniteZoom(state.properties.zoom);
-      const nextSnapshot = {
-        bounds: getVisibleBounds(state.properties.bounds),
-        zoom,
-        zoomBucket: getZoomSampleBucket(zoom),
-      };
+    const samplingState = cameraSamplingStateRef.current;
+    if (samplingState.hasCommittedSnapshot && !samplingState.hasMovedSinceCommit) {
+      return;
+    }
 
+    const nextSnapshot = createCameraSnapshot(state);
+    samplingState.hasCommittedSnapshot = true;
+    samplingState.hasMovedSinceCommit = false;
+    samplingState.lastCommittedSnapshot = nextSnapshot;
+
+    setCameraSnapshot((currentSnapshot) => {
       return areCameraSnapshotsEqual(currentSnapshot, nextSnapshot) ? currentSnapshot : nextSnapshot;
     });
   }, []);
@@ -476,6 +479,16 @@ function hashString(value: string) {
 
 function getFiniteZoom(zoom: number) {
   return Number.isFinite(zoom) ? Math.max(0, zoom) : 0;
+}
+
+function createCameraSnapshot(state: MapState): MapCameraSnapshot {
+  const zoom = getFiniteZoom(state.properties.zoom);
+
+  return {
+    bounds: getVisibleBounds(state.properties.bounds),
+    zoom,
+    zoomBucket: getZoomSampleBucket(zoom),
+  };
 }
 
 function getZoomSampleBucket(zoom: number) {
