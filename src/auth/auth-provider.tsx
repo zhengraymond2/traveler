@@ -1,9 +1,11 @@
 import * as React from 'react';
 
+import { DEV_MODE } from '@/constants/dev-mode';
+
 import { createAnonymousDisplayName, createInitials } from './anonymous-name';
 import { deloadCloudDataFromLocalDatabase, loadCloudDataIntoLocalDatabase } from './cloud-sync';
-import { authProviderHandlers } from './provider-handlers';
-import { AuthCancelledError, type AuthProviderKey, type AuthUser } from './types';
+
+import type { AuthProviderKey, AuthUser, ExternalAuthIdentity } from './types';
 
 type AuthStatus = 'idle' | 'signing-in' | 'signing-out';
 
@@ -20,46 +22,51 @@ type AuthContextValue = {
 
 const AuthContext = React.createContext<AuthContextValue | null>(null);
 
+const devUserId = 'traveler-existing-dev-user';
+const devUserEmail = 'dev@traveler.local';
+const devDefaultProvider: AuthProviderKey = 'apple';
+
 export function AuthProvider({ children }: React.PropsWithChildren) {
-  const [user, setUser] = React.useState<AuthUser | null>(null);
+  const [user, setUser] = React.useState<AuthUser | null>(() =>
+    DEV_MODE ? createAuthUser(createDevIdentity(devDefaultProvider)) : null
+  );
   const [status, setStatus] = React.useState<AuthStatus>('idle');
   const [activeProvider, setActiveProvider] = React.useState<AuthProviderKey | null>(null);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const hasLoadedInitialDevUser = React.useRef(false);
 
   const isProviderAvailable = React.useCallback((provider: AuthProviderKey) => {
-    return Boolean(authProviderHandlers[provider]);
+    return DEV_MODE && Boolean(provider);
   }, []);
 
-  const signIn = React.useCallback(async (provider: AuthProviderKey) => {
-    const handler = authProviderHandlers[provider];
-    if (!handler) {
-      setErrorMessage('This sign-in method is not configured yet.');
-      return null;
+  React.useEffect(() => {
+    if (!DEV_MODE || !user || hasLoadedInitialDevUser.current) {
+      return;
     }
 
+    hasLoadedInitialDevUser.current = true;
+
+    loadCloudDataIntoLocalDatabase(user).catch((error: unknown) => {
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to load cloud data.');
+    });
+  }, [user]);
+
+  const signIn = React.useCallback(async (provider: AuthProviderKey) => {
     setStatus('signing-in');
     setActiveProvider(provider);
     setErrorMessage(null);
 
     try {
-      const identity = await handler.signIn();
-      const displayName = createAnonymousDisplayName(`${identity.provider}:${identity.id}`);
-      const nextUser: AuthUser = {
-        ...identity,
-        displayName,
-        initials: createInitials(displayName),
-      };
+      if (!DEV_MODE) {
+        throw new Error('Sign-in clients are not configured yet.');
+      }
 
+      const nextUser = createAuthUser(createDevIdentity(provider));
       setUser(nextUser);
       await loadCloudDataIntoLocalDatabase(nextUser);
 
       return nextUser;
     } catch (error) {
-      if (error instanceof AuthCancelledError) {
-        setErrorMessage(null);
-        return null;
-      }
-
       setErrorMessage(error instanceof Error ? error.message : 'Unable to sign in.');
       return null;
     } finally {
@@ -77,7 +84,6 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
     setErrorMessage(null);
 
     try {
-      await authProviderHandlers[user.provider]?.signOut();
       await deloadCloudDataFromLocalDatabase(user);
       setUser(null);
     } catch (error) {
@@ -102,6 +108,26 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+function createDevIdentity(provider: AuthProviderKey): ExternalAuthIdentity {
+  return {
+    id: devUserId,
+    provider,
+    email: devUserEmail,
+    givenName: 'Dev',
+    familyName: 'Traveler',
+  };
+}
+
+function createAuthUser(identity: ExternalAuthIdentity): AuthUser {
+  const displayName = createAnonymousDisplayName(`${identity.provider}:${identity.id}`);
+
+  return {
+    ...identity,
+    displayName,
+    initials: createInitials(displayName),
+  };
 }
 
 export function useAuth() {
