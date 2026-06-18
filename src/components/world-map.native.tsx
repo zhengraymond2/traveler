@@ -8,6 +8,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import Animated, { BounceIn, BounceOut, FadeIn, FadeOut } from 'react-native-reanimated';
 
+import { getLocationCategoryAppearance } from '@/constants/location-categories';
 import { MapGestureSettings, MapTerrainStyle, MapTuning, PhotoPinDensityStops } from '@/constants/map';
 import { AppColors } from '@/constants/theme';
 import type { LocationWithPhotos } from '@/db/repository';
@@ -270,31 +271,11 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
             hitbox={{ width: 44, height: 44 }}
             onPress={handleDotPress}>
             <Mapbox.CircleLayer id="saved-location-dot-layer" style={mapLayerStyles.locationDot} />
+            <Mapbox.SymbolLayer id="saved-location-icon-layer" style={mapLayerStyles.locationIcon} />
           </Mapbox.ShapeSource>
         ) : null}
         {sampledPinLocations.map((location) => (
-          <Mapbox.MarkerView
-            key={location.id}
-            allowOverlap={false}
-            anchor={{ x: 0.5, y: 1 }}
-            coordinate={[location.longitude, location.latitude]}>
-            <Animated.View
-              entering={BounceIn.duration(520)}
-              exiting={BounceOut.duration(260)}
-              style={styles.photoPinAnimated}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Open ${getLocationName(location)} preview`}
-                hitSlop={8}
-                style={styles.photoPin}
-                onPress={() => handleLocationPress(location)}>
-                <View style={styles.photoPinBubble}>
-                  <Image source={{ uri: location.photos[0].uri }} style={styles.photoPinImage} contentFit="cover" />
-                </View>
-                <View style={styles.photoPinTip} />
-              </Pressable>
-            </Animated.View>
-          </Mapbox.MarkerView>
+          <PhotoMarker key={location.id} location={location} onPress={handleLocationPress} />
         ))}
       </Mapbox.MapView>
 
@@ -315,6 +296,45 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
 });
 
 type CoordinateLocation = LocationWithPhotos & { latitude: number; longitude: number };
+
+function PhotoMarker({
+  location,
+  onPress,
+}: {
+  location: CoordinateLocation & { photos: [{ uri: string }, ...LocationWithPhotos['photos']] };
+  onPress: (location: CoordinateLocation) => void;
+}) {
+  const categoryAppearance = getLocationCategoryAppearance(location.category);
+
+  return (
+    <Mapbox.MarkerView
+      allowOverlap={false}
+      anchor={{ x: 0.5, y: 1 }}
+      coordinate={[location.longitude, location.latitude]}>
+      <Animated.View
+        entering={BounceIn.duration(520)}
+        exiting={BounceOut.duration(260)}
+        style={styles.photoPinAnimated}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${getLocationName(location)} preview`}
+          hitSlop={8}
+          style={styles.photoPin}
+          onPress={() => onPress(location)}>
+          <View style={[styles.photoPinBubble, { borderColor: categoryAppearance.color }]}>
+            <Image source={{ uri: location.photos[0].uri }} style={styles.photoPinImage} contentFit="cover" />
+            <View style={[styles.photoPinIconBadge, { backgroundColor: categoryAppearance.color }]}>
+              <Text selectable={false} variant="labelSmall" style={styles.photoPinIconText}>
+                {categoryAppearance.glyph}
+              </Text>
+            </View>
+          </View>
+          <View style={[styles.photoPinTip, { backgroundColor: categoryAppearance.color }]} />
+        </Pressable>
+      </Animated.View>
+    </Mapbox.MarkerView>
+  );
+}
 
 function LocationPreviewDialog({ location, onClose }: { location: CoordinateLocation; onClose: () => void }) {
   return (
@@ -391,7 +411,10 @@ function createLocationDotShape(locations: LocationWithPhotos[]): GeoJSON.Featur
       type: 'Feature',
       id: location.id,
       properties: {
+        category: location.category,
         id: location.id,
+        markerColor: getLocationCategoryAppearance(location.category).color,
+        markerGlyph: getLocationCategoryAppearance(location.category).glyph,
         name: location.name ?? 'Untitled location',
       },
       geometry: {
@@ -612,13 +635,25 @@ function canUseGlassEffect() {
 
 const mapLayerStyles = {
   locationDot: {
-    circleColor: AppColors.primary,
+    circleColor: ['coalesce', ['get', 'markerColor'], AppColors.primary],
     circleOpacity: 0.92,
-    circleRadius: 4,
+    circleRadius: 8,
     circleStrokeColor: AppColors.surface,
     circleStrokeWidth: 1.5,
   },
-} satisfies Record<string, Mapbox.CircleLayerStyle>;
+  locationIcon: {
+    textAllowOverlap: true,
+    textColor: AppColors.textInverse,
+    textField: ['coalesce', ['get', 'markerGlyph'], '✦'],
+    textHaloColor: 'rgba(0, 0, 0, 0.12)',
+    textHaloWidth: 0.3,
+    textIgnorePlacement: true,
+    textSize: 10,
+  },
+} satisfies {
+  locationDot: Mapbox.CircleLayerStyle;
+  locationIcon: Mapbox.SymbolLayerStyle;
+};
 
 const styles = StyleSheet.create({
   mapContainer: {
@@ -656,6 +691,24 @@ const styles = StyleSheet.create({
     borderColor: AppColors.primary,
     backgroundColor: AppColors.surface,
     boxShadow: `0 5px 12px ${AppColors.shadow}`,
+  },
+  photoPinIconBadge: {
+    position: 'absolute',
+    right: -3,
+    bottom: -3,
+    width: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: AppColors.surface,
+  },
+  photoPinIconText: {
+    color: AppColors.textInverse,
+    fontSize: 9,
+    fontWeight: '800',
+    lineHeight: 12,
   },
   photoPinImage: {
     width: '100%',
