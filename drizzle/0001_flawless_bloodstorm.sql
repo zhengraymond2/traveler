@@ -1,0 +1,1 @@
+ALTER TABLE `locations` ADD `trail_map_url` text;

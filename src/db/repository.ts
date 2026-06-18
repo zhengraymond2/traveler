@@ -21,6 +21,7 @@ export type CreateLocationInput = {
   longitude?: number;
   googleMapsUrl?: string;
   instagramUrl?: string;
+  trailMapUrl?: string;
   notes?: string;
   country?: string;
   category?: string;
@@ -149,6 +150,7 @@ function createLocationWriter(database: AppDatabase): LocationWriter {
         longitude: input.longitude,
         googleMapsUrl: normalizeText(input.googleMapsUrl),
         instagramUrl: normalizeText(input.instagramUrl),
+        trailMapUrl: normalizeText(input.trailMapUrl),
         notes: normalizeText(input.notes),
         country: normalizeText(input.country),
         category: normalizeText(input.category),
@@ -243,6 +245,9 @@ function normalizeLocationUpdate(input: UpdateLocationInput) {
   }
   if ('instagramUrl' in input) {
     update.instagramUrl = normalizeText(input.instagramUrl);
+  }
+  if ('trailMapUrl' in input) {
+    update.trailMapUrl = normalizeText(input.trailMapUrl);
   }
   if ('notes' in input) {
     update.notes = normalizeText(input.notes);

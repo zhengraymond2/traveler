@@ -115,6 +115,7 @@ export default function SavedLocationDetailScreen() {
             <View style={styles.links}>
               <DetailLink label="Google Maps" url={getGoogleMapsUrl(location)} />
               {location.instagramUrl ? <DetailLink label="Instagram" url={location.instagramUrl} /> : null}
+              {location.trailMapUrl ? <DetailLink label="AllTrails / Footpath" url={location.trailMapUrl} /> : null}
             </View>
 
             {location.notes ? (

@@ -19,6 +19,7 @@ export default function AddSourceScreen() {
   const [gpsCoordinates, setGpsCoordinates] = React.useState('');
   const [googleMapsUrl, setGoogleMapsUrl] = React.useState('');
   const [instagramUrl, setInstagramUrl] = React.useState('');
+  const [trailMapUrl, setTrailMapUrl] = React.useState('');
   const [photos, setPhotos] = React.useState<SelectedPhoto[]>([]);
   const [notes, setNotes] = React.useState('');
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
@@ -63,6 +64,7 @@ export default function AddSourceScreen() {
         longitude: coordinates?.longitude,
         googleMapsUrl,
         instagramUrl,
+        trailMapUrl,
         notes,
         photos: photos.map((photo) => ({ uri: photo.uri })),
       });
@@ -175,6 +177,17 @@ export default function AddSourceScreen() {
             autoCorrect={false}
             value={instagramUrl}
             onChangeText={setInstagramUrl}
+          />
+
+          <TextInput
+            mode="outlined"
+            label="AllTrails or Footpath link"
+            placeholder="https://www.alltrails.com/... or https://footpathapp.com/..."
+            keyboardType="url"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={trailMapUrl}
+            onChangeText={setTrailMapUrl}
           />
 
           <View style={styles.photoSection}>

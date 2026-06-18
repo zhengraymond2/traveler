@@ -10,6 +10,7 @@ export const locations = sqliteTable(
     longitude: real('longitude'),
     googleMapsUrl: text('google_maps_url'),
     instagramUrl: text('instagram_url'),
+    trailMapUrl: text('trail_map_url'),
     notes: text('notes'),
     country: text('country'),
     category: text('category'),
