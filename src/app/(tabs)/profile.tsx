@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Avatar, Button, Divider, List, Surface, Text, useTheme } from 'react-native-paper';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Button, Divider, List, Surface, Text, useTheme } from 'react-native-paper';
 
 import { useAuth } from '@/auth';
 import { AppColors, MaxContentWidth } from '@/constants/theme';
@@ -20,13 +20,8 @@ export default function ProfileScreen() {
         style={styles.scrollView}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}>
-        <View style={styles.headerSpace} />
-
         {isSignedIn && user ? (
           <Surface mode="flat" style={styles.section}>
-            <Text selectable variant="titleMedium" style={styles.sectionTitle}>
-              Profile
-            </Text>
             <List.Section>
               <List.Item
                 title={user.displayName}
@@ -66,6 +61,9 @@ export default function ProfileScreen() {
             <Text selectable variant="bodyMedium" style={styles.mutedText}>
               Sign in or sign up to sync your saved places later.
             </Text>
+            <Button mode="contained" style={styles.signInButton} onPress={() => router.push('/sign-in')}>
+              Sign in
+            </Button>
           </Surface>
         )}
 
@@ -87,27 +85,6 @@ export default function ProfileScreen() {
           </List.Section>
         </Surface>
       </ScrollView>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={isSignedIn && user ? user.displayName : 'Sign in'}
-        style={styles.profileButton}
-        onPress={() => {
-          if (!isSignedIn) {
-            router.push('/sign-in');
-          }
-        }}>
-        {isSignedIn && user ? (
-          <Avatar.Text size={48} label={user.initials} style={styles.avatar} />
-        ) : (
-          <Surface mode="flat" style={styles.signInBubble}>
-            <Avatar.Icon size={38} icon="account" color={AppColors.textMuted} style={styles.silhouette} />
-            <Text variant="labelLarge" style={styles.signInText}>
-              Sign in
-            </Text>
-          </Surface>
-        )}
-      </Pressable>
     </View>
   );
 }
@@ -127,10 +104,8 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 16,
   },
-  headerSpace: {
-    height: 64,
-  },
   section: {
+    gap: 12,
     borderRadius: 8,
     borderCurve: 'continuous',
     padding: 16,
@@ -146,31 +121,8 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: 8,
   },
-  profileButton: {
-    position: 'absolute',
-    top: 18,
-    right: 16,
-  },
-  signInBubble: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    backgroundColor: AppColors.surface,
-    boxShadow: '0 6px 18px rgba(0, 0, 0, 0.12)',
-  },
-  silhouette: {
-    backgroundColor: AppColors.surfaceMuted,
-  },
-  signInText: {
-    color: AppColors.text,
-    paddingRight: 6,
-  },
-  avatar: {
-    backgroundColor: AppColors.primary,
-    boxShadow: '0 6px 18px rgba(0, 0, 0, 0.14)',
+  signInButton: {
+    alignSelf: 'flex-start',
+    borderRadius: 8,
   },
 });
