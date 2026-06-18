@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import * as React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { BounceIn, BounceOut, FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { MapGestureSettings, MapTerrainStyle, MapTuning, PhotoPinDensityStops } from '@/constants/map';
 import { AppColors } from '@/constants/theme';
@@ -278,17 +278,22 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
             allowOverlap={false}
             anchor={{ x: 0.5, y: 1 }}
             coordinate={[location.longitude, location.latitude]}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${getLocationName(location)} preview`}
-              hitSlop={8}
-              style={styles.photoPin}
-              onPress={() => handleLocationPress(location)}>
-              <View style={styles.photoPinBubble}>
-                <Image source={{ uri: location.photos[0].uri }} style={styles.photoPinImage} contentFit="cover" />
-              </View>
-              <View style={styles.photoPinTip} />
-            </Pressable>
+            <Animated.View
+              entering={BounceIn.duration(520)}
+              exiting={BounceOut.duration(260)}
+              style={styles.photoPinAnimated}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${getLocationName(location)} preview`}
+                hitSlop={8}
+                style={styles.photoPin}
+                onPress={() => handleLocationPress(location)}>
+                <View style={styles.photoPinBubble}>
+                  <Image source={{ uri: location.photos[0].uri }} style={styles.photoPinImage} contentFit="cover" />
+                </View>
+                <View style={styles.photoPinTip} />
+              </Pressable>
+            </Animated.View>
           </Mapbox.MarkerView>
         ))}
       </Mapbox.MapView>
@@ -637,6 +642,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 48,
     alignItems: 'center',
+  },
+  photoPinAnimated: {
+    width: 40,
+    height: 48,
   },
   photoPinBubble: {
     width: 38,
