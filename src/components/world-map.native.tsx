@@ -74,11 +74,8 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
   const locationsById = React.useMemo(() => {
     return new Map(locations.filter(hasCoordinates).map((location) => [location.id, location]));
   }, [locations]);
-
-  React.useEffect(() => {
-    if (selectedLocation && !locationsById.has(selectedLocation.id)) {
-      setSelectedLocation(null);
-    }
+  const visibleSelectedLocation = React.useMemo(() => {
+    return selectedLocation && locationsById.has(selectedLocation.id) ? selectedLocation : null;
   }, [locationsById, selectedLocation]);
 
   const flyToCountryLevel = React.useCallback((coordinate: CoordinatePair | null) => {
@@ -288,7 +285,7 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
         ))}
       </Mapbox.MapView>
 
-      {selectedLocation ? (
+      {visibleSelectedLocation ? (
         <Pressable
           accessibilityLabel="Close location preview"
           accessibilityRole="button"
@@ -297,8 +294,8 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
         />
       ) : null}
 
-      {selectedLocation ? (
-        <LocationPreviewDialog location={selectedLocation} onClose={() => setSelectedLocation(null)} />
+      {visibleSelectedLocation ? (
+        <LocationPreviewDialog location={visibleSelectedLocation} onClose={() => setSelectedLocation(null)} />
       ) : null}
     </View>
   );

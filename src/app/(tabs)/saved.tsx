@@ -9,8 +9,7 @@ import { PulsingView } from '@/components/pulsing-view';
 import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
 import type { LocationWithPhotos } from '@/db/repository';
-
-const unknownCountryLabel = 'Unknown';
+import { getCountryRows } from '@/features/locations/saved-country-rows';
 
 export default function SavedLocationsScreen() {
   const theme = useTheme();
@@ -162,11 +161,6 @@ const styles = StyleSheet.create({
   },
 });
 
-type CountryRowData = {
-  imageUri?: string;
-  name: string;
-};
-
 function CountryRow({
   country,
   imageUri,
@@ -205,35 +199,4 @@ function LoadingCountryRows() {
       ))}
     </View>
   );
-}
-
-function getCountryRows(locations: LocationWithPhotos[]): CountryRowData[] {
-  const countries = Array.from(new Set(locations.map(getCountryName))).sort((first, second) =>
-    first === unknownCountryLabel ? 1 : second === unknownCountryLabel ? -1 : first.localeCompare(second)
-  );
-
-  return countries.map((country) => {
-    const countryLocations = locations.filter((location) => getCountryName(location) === country);
-    return {
-      name: country,
-      imageUri: getStableRandomPhotoUri(country, countryLocations),
-    };
-  });
-}
-
-function getCountryName(location: LocationWithPhotos) {
-  return location.country?.trim() || unknownCountryLabel;
-}
-
-function getStableRandomPhotoUri(seed: string, locations: LocationWithPhotos[]) {
-  const photos = locations.flatMap((location) => location.photos);
-  if (!photos.length) {
-    return undefined;
-  }
-
-  return photos[hashString(seed) % photos.length]?.uri;
-}
-
-function hashString(value: string) {
-  return Array.from(value).reduce((hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0, 0);
 }

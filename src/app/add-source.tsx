@@ -9,6 +9,7 @@ import { CountryRegionDropdown } from '@/components/country-region-dropdown';
 import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
 import type { Location } from '@/db/schema';
+import { mergePhotos, parseCoordinates, toSelectedPhoto, type SelectedPhoto } from '@/features/locations/add-source-helpers';
 
 export default function AddSourceScreen() {
   const theme = useTheme();
@@ -313,45 +314,3 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 });
-
-type SelectedPhoto = {
-  fileName?: string | null;
-  uri: string;
-};
-
-function parseCoordinates(value: string) {
-  const normalized = value.trim();
-  if (!normalized) {
-    return undefined;
-  }
-
-  const [latitudeText, longitudeText] = normalized.split(',').map((part) => part.trim());
-  const latitude = Number(latitudeText);
-  const longitude = Number(longitudeText);
-
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-    throw new Error('GPS coordinates should look like "37.7749, -122.4194".');
-  }
-
-  return { latitude, longitude };
-}
-
-function toSelectedPhoto(asset: ImagePicker.ImagePickerAsset): SelectedPhoto {
-  return {
-    fileName: asset.fileName,
-    uri: asset.uri,
-  };
-}
-
-function mergePhotos(currentPhotos: SelectedPhoto[], newPhotos: SelectedPhoto[]) {
-  const existingUris = new Set(currentPhotos.map((photo) => photo.uri));
-  const uniqueNewPhotos = newPhotos.filter((photo) => {
-    if (existingUris.has(photo.uri)) {
-      return false;
-    }
-    existingUris.add(photo.uri);
-    return true;
-  });
-
-  return [...currentPhotos, ...uniqueNewPhotos];
-}

@@ -78,7 +78,7 @@ function collectUniquePhotos(canonicalLocationId: string, photos: LocationPhoto[
   }));
 }
 
-function collectUniqueNotes(notes: Array<string | null>) {
+function collectUniqueNotes(notes: (string | null)[]) {
   const seenNotes = new Set<string>();
   const uniqueNotes = notes
     .map((note) => note?.trim())
