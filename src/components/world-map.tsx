@@ -10,13 +10,20 @@ type WorldMapProps = {
 };
 
 export type WorldMapHandle = {
+  moveToCountryCoordinate: (coordinate: MapCoordinate) => boolean;
   moveToUserLocation: () => Promise<boolean>;
+};
+
+export type MapCoordinate = {
+  latitude: number;
+  longitude: number;
 };
 
 export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function WorldMap(_props, ref) {
   React.useImperativeHandle(
     ref,
     () => ({
+      moveToCountryCoordinate: () => false,
       moveToUserLocation: async () => false,
     }),
     []

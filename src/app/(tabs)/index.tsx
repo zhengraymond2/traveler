@@ -3,8 +3,10 @@ import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
 
+import { MapRegionSearch } from '@/components/map-region-search';
 import { WorldMap, type WorldMapHandle } from '@/components/world-map';
 import { AppColors } from '@/constants/theme';
+import { buildMapRegionSearchOptions, type MapRegionSearchOption } from '@/data/map-region-search-options';
 import { useDatabase } from '@/db/database-provider';
 import type { LocationWithPhotos } from '@/db/repository';
 
@@ -13,6 +15,7 @@ export default function MapScreen() {
   const { reader } = useDatabase();
   const mapRef = React.useRef<WorldMapHandle>(null);
   const [locations, setLocations] = React.useState<LocationWithPhotos[]>([]);
+  const regionSearchOptions = React.useMemo(() => buildMapRegionSearchOptions(locations), [locations]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -43,6 +46,7 @@ export default function MapScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.map}>
         <WorldMap ref={mapRef} locations={locations} />
+        <MapRegionSearch options={regionSearchOptions} onSelect={handleSelectRegionSearchOption} />
         <Pressable
           accessibilityLabel="Center on current location"
           accessibilityRole="button"
@@ -83,6 +87,14 @@ export default function MapScreen() {
       </View>
     </View>
   );
+
+  function handleSelectRegionSearchOption(option: MapRegionSearchOption) {
+    if (!option.center) {
+      return;
+    }
+
+    mapRef.current?.moveToCountryCoordinate(option.center);
+  }
 }
 
 const styles = StyleSheet.create({

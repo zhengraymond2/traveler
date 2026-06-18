@@ -30,7 +30,13 @@ type WorldMapProps = {
 };
 
 export type WorldMapHandle = {
+  moveToCountryCoordinate: (coordinate: MapCoordinate) => boolean;
   moveToUserLocation: () => Promise<boolean>;
+};
+
+export type MapCoordinate = {
+  latitude: number;
+  longitude: number;
 };
 
 type MapCameraSnapshot = {
@@ -141,6 +147,9 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
   React.useImperativeHandle(
     ref,
     () => ({
+      moveToCountryCoordinate: (coordinate) => {
+        return flyToCountryLevel([coordinate.longitude, coordinate.latitude]);
+      },
       moveToUserLocation: async () => {
         const coordinate = await requestCurrentUserCoordinate();
 
