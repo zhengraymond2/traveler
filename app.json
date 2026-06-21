@@ -45,6 +45,25 @@
           "locationWhenInUsePermission": "Traveler uses your location to start the map near your current country and show your position."
         }
       ],
+      [
+        "expo-sharing",
+        {
+          "ios": {
+            "enabled": true,
+            "activationRule": {
+              "supportsText": true,
+              "supportsWebUrlWithMaxCount": 1,
+              "supportsImageWithMaxCount": 20,
+              "supportsFileWithMaxCount": 20
+            }
+          },
+          "android": {
+            "enabled": true,
+            "singleShareMimeTypes": ["text/*", "image/*", "application/json", "*/*"],
+            "multipleShareMimeTypes": ["text/*", "image/*", "application/json", "*/*"]
+          }
+        }
+      ],
       "expo-sqlite",
       [
         "@rnmapbox/maps",
