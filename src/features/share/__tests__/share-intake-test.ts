@@ -1,4 +1,4 @@
-import { buildShareIntakeLog, classifySharedPayload } from '../share-intake';
+import { buildAddSourceInputsFromSharedPayloads, buildShareIntakeLog, classifySharedPayload } from '../share-intake';
 
 describe('share intake helpers', () => {
   test('classifies Instagram links', () => {
@@ -82,5 +82,34 @@ describe('share intake helpers', () => {
       resolvedPayloads,
       source: 'expo-sharing',
     });
+  });
+
+  test('converts shared Instagram, Google Maps, and image payloads to add-source inputs', () => {
+    expect(
+      buildAddSourceInputsFromSharedPayloads([
+        {
+          shareType: 'url',
+          value: 'https://www.instagram.com/p/example',
+        },
+        {
+          shareType: 'url',
+          value: 'https://maps.app.goo.gl/example',
+        },
+        {
+          shareType: 'image',
+          value: 'file:///photo.jpg',
+        },
+      ])
+    ).toEqual([
+      {
+        instagramUrls: ['https://www.instagram.com/p/example'],
+      },
+      {
+        googleMapsUrl: 'https://maps.app.goo.gl/example',
+      },
+      {
+        sourcePhotoUris: ['file:///photo.jpg'],
+      },
+    ]);
   });
 });

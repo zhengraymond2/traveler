@@ -4,11 +4,13 @@ import * as React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 
-import { buildShareIntakeLog } from '@/features/share/share-intake';
+import { useServices } from '@/services/app-services';
+import { buildAddSourceInputsFromSharedPayloads, buildShareIntakeLog } from '@/features/share/share-intake';
 
 export default function HandleShareScreen() {
   const theme = useTheme();
   const { isResolving, resolvedSharedPayloads, sharedPayloads } = useIncomingShare();
+  const { locationIntakeService } = useServices();
   const hasLoggedShareRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -17,10 +19,24 @@ export default function HandleShareScreen() {
     }
 
     hasLoggedShareRef.current = true;
-    console.log('Traveler received shared content', buildShareIntakeLog(sharedPayloads, resolvedSharedPayloads));
-    clearSharedPayloads();
-    router.replace('/(tabs)/saved');
-  }, [isResolving, resolvedSharedPayloads, sharedPayloads]);
+    void processSharedPayloads();
+  }, [isResolving, locationIntakeService, resolvedSharedPayloads, sharedPayloads]);
+
+  async function processSharedPayloads() {
+    const log = buildShareIntakeLog(sharedPayloads, resolvedSharedPayloads);
+    const payloadsToProcess = resolvedSharedPayloads.length ? resolvedSharedPayloads : sharedPayloads;
+    const addSourceInputs = buildAddSourceInputsFromSharedPayloads(payloadsToProcess);
+
+    try {
+      const results = await Promise.all(addSourceInputs.map((input) => locationIntakeService.addSource(input)));
+      console.log('Traveler received shared content', { ...log, results });
+    } catch (error) {
+      console.error('Traveler failed to process shared content', error);
+    } finally {
+      clearSharedPayloads();
+      router.replace('/(tabs)/saved');
+    }
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
