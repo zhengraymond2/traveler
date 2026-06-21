@@ -6,7 +6,7 @@
 
 **Architecture:** The app talks to service contracts in `src/services` and an HTTP backend API client. Local proof services and test fixtures live outside app code under `test/`, while production-facing contracts and future AWS adapters live under `src/`. The first shipped slice uses local services, deterministic fake recognition, local private `LocalLocation` records, and cached canonical `Location` data; AWS implementations can later replace local services behind the same interfaces.
 
-**Tech Stack:** Expo SDK 56, Expo Router, React Native, TypeScript, Jest, Drizzle/SQLite for app-local cache, Node local backend for development/tests, future AWS SQS/S3/RDS-or-Aurora/Lambda-style adapters, future OpenAI vision recognizer.
+**Tech Stack:** Expo SDK 56, Expo Router, React Native, TypeScript, Jest, Drizzle/SQLite for app-local cache, Node local backend for development/tests, AWS SQS/S3/Aurora Data API staging adapters, Lambda-style worker boundary, future OpenRouter vision recognizer.
 
 ## Global Constraints
 
@@ -445,15 +445,15 @@ Create contracts in `src/services/contracts`:
 - Consumes contracts and local proof results.
 - Produces implementation notes for replacing local services with AWS-backed services.
 
-- [ ] Document future AWS mapping:
+- [x] Document AWS mapping:
   - `EventsReader/Writer` -> SQS.
   - `BlobStore` -> S3.
   - `LocationDirectory` -> API backed by RDS/Aurora.
   - Worker -> Lambda or container worker consuming SQS.
-  - Recognizer -> OpenAI vision call behind server-side worker.
-- [ ] Document required secrets and config names without committing values.
-- [ ] Document local-to-AWS cutover tests.
-- [ ] Run `npx tsc --noEmit` to ensure docs-only changes did not hide stale type errors from prior tasks.
+  - Recognizer -> OpenRouter vision call behind server-side worker.
+- [x] Document required secrets and config names without committing values.
+- [x] Document local-to-AWS cutover tests.
+- [x] Run `npx tsc --noEmit` to ensure docs-only changes did not hide stale type errors from prior tasks.
 - [ ] Commit: `docs: plan aws recognition rollout`.
 
 ## Prompt Template For Future Real Recognizer
@@ -533,3 +533,6 @@ Return only strict JSON.
 Add dated notes here during implementation when the design changes or an implementation decision needs to be preserved.
 
 - 2026-06-21: Initial plan approved as local-first. App uses dependency-injected service contracts and an HTTP API boundary. Local proof/test implementations live under `test/`; production interfaces and future AWS stubs live under `src/`.
+- 2026-06-21: Added AWS staging plumbing for Aurora Data API, SQS events, S3 source-photo blobs, an in-process staging API handler, and a fixture worker smoke runner. The worker smoke path still uses the deterministic fixture recognizer so the full SQS -> worker -> Aurora route can be tested before enabling paid vision calls.
+- 2026-06-21: Added an OpenRouter recognizer skeleton behind `LocationRecognizer`. It expects `OPENROUTER_API_KEY` and `OPENROUTER_MODEL`, sends multimodal chat completions, requests JSON output, and returns `needsReview` for name confidence below `0.8`.
+- 2026-06-21: The staging S3 bucket discovered from AWS is `traveler-staging-195198314852-us-east-1-an`; `.env` should use that full bucket name for `LOCATION_BLOB_BUCKET`.
