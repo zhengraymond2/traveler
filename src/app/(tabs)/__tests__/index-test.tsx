@@ -1,0 +1,85 @@
+import { StyleSheet } from 'react-native';
+
+import MapScreen from '../index';
+import { UITestHelper } from '@/test/UITestHelper';
+
+const mockListLocationsWithPhotos = jest.fn();
+const mockMoveToCountryCoordinate = jest.fn();
+const mockMoveToUserLocation = jest.fn();
+const mockRouterPush = jest.fn();
+
+jest.mock('expo-router', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+
+  return {
+    router: {
+      push: (...args: unknown[]) => mockRouterPush(...args),
+    },
+    useFocusEffect: (effect: () => void | (() => void)) => {
+      React.useEffect(effect, [effect]);
+    },
+  };
+});
+
+jest.mock('@/components/map-region-search', () => {
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+
+  return {
+    MapRegionSearch: () => <View testID="map-region-search" />,
+  };
+});
+
+jest.mock('@/components/world-map', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+
+  return {
+    WorldMap: React.forwardRef(function MockWorldMap(_props: unknown, ref: React.Ref<unknown>) {
+      React.useImperativeHandle(ref, () => ({
+        moveToCountryCoordinate: (...args: unknown[]) => mockMoveToCountryCoordinate(...args),
+        moveToUserLocation: (...args: unknown[]) => mockMoveToUserLocation(...args),
+      }));
+
+      return <View testID="world-map" />;
+    }),
+  };
+});
+
+jest.mock('@/db/database-provider', () => ({
+  useDatabase: () => ({
+    reader: {
+      listLocationsWithPhotos: (...args: unknown[]) => mockListLocationsWithPhotos(...args),
+    },
+  }),
+}));
+
+describe('MapScreen', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockListLocationsWithPhotos.mockResolvedValue([]);
+  });
+
+  test('places the current-location control in the right-side stack under the compass', async () => {
+    const screen = await UITestHelper.renderWithPaper(<MapScreen />);
+    const locationButton = screen.getByLabelText('Center on current location');
+    const locationButtonStyle = StyleSheet.flatten(resolvePressableStyle(locationButton.props.style));
+
+    expect(locationButtonStyle).toMatchObject({
+      position: 'absolute',
+      right: 27,
+      top: 190,
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+    });
+    expect(locationButtonStyle.bottom).toBeUndefined();
+  });
+});
+
+function resolvePressableStyle(style: unknown) {
+  if (typeof style === 'function') {
+    return style({ pressed: false });
+  }
+
+  return style;
+}

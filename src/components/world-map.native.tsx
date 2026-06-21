@@ -9,7 +9,7 @@ import { Text } from 'react-native-paper';
 import Animated, { BounceIn, BounceOut, FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { getLocationCategoryAppearance } from '@/constants/location-categories';
-import { MapGestureSettings, MapTerrainStyle, MapTuning, PhotoPinDensityStops } from '@/constants/map';
+import { MapControlLayout, MapGestureSettings, MapTerrainStyle, MapTuning, PhotoPinDensityStops } from '@/constants/map';
 import { AppColors } from '@/constants/theme';
 import type { LocationWithPhotos } from '@/db/repository';
 
@@ -24,6 +24,11 @@ let hasCenteredOnStartupLocation = false;
 if (mapboxAccessToken) {
   Mapbox.setAccessToken(mapboxAccessToken);
 }
+
+export const mapCompassControlProps = {
+  compassViewPosition: 1,
+  compassViewMargins: { x: MapControlLayout.right, y: MapControlLayout.compassTop },
+} as const;
 
 type WorldMapProps = {
   locations?: LocationWithPhotos[];
@@ -238,8 +243,7 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
         projection="globe"
         compassEnabled
         compassFadeWhenNorth={false}
-        compassViewPosition={0}
-        compassViewMargins={{ x: 16, y: 64 }}
+        {...mapCompassControlProps}
         scaleBarEnabled={false}
         pitchEnabled
         rotateEnabled

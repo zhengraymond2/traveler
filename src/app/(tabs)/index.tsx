@@ -5,6 +5,7 @@ import { useTheme } from 'react-native-paper';
 
 import { MapRegionSearch } from '@/components/map-region-search';
 import { WorldMap, type WorldMapHandle } from '@/components/world-map';
+import { MapControlLayout } from '@/constants/map';
 import { AppColors } from '@/constants/theme';
 import { buildMapRegionSearchOptions, type MapRegionSearchOption } from '@/data/map-region-search-options';
 import { useDatabase } from '@/db/database-provider';
@@ -118,13 +119,13 @@ const styles = StyleSheet.create({
   },
   locationButton: {
     position: 'absolute',
-    right: 27,
-    bottom: 156,
-    width: 46,
-    height: 46,
+    top: MapControlLayout.locationTop,
+    right: MapControlLayout.right,
+    width: MapControlLayout.size,
+    height: MapControlLayout.size,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 23,
+    borderRadius: MapControlLayout.size / 2,
     backgroundColor: AppColors.mapUserLocation,
     boxShadow: `0 7px 18px ${AppColors.shadow}`,
   },
