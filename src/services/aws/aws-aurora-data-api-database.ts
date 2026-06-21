@@ -112,6 +112,7 @@ export class AwsAuroraDataApiDatabase implements DatabaseClient {
     const response = await this.client.send(
       new this.commands.ExecuteStatementCommand({
         database: this.config.database,
+        includeResultMetadata: true,
         parameters: toDataApiParameters(statement.parameters),
         resourceArn: this.config.resourceArn,
         secretArn: this.config.secretArn,

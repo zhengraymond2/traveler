@@ -25,6 +25,33 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Staging Vision Pipeline
+
+The location-recognition pipeline is built behind service contracts so local fakes, staging AWS services, and future production services can share the same app-facing code.
+
+Server-side staging variables live in `.env` and should not use `EXPO_PUBLIC_*` names:
+
+- `AWS_REGION`
+- `LOCATION_RECOGNITION_QUEUE_URL`
+- `LOCATION_RECOGNITION_DLQ_URL`
+- `LOCATION_BLOB_BUCKET`
+- `TRAVELER_AURORA_RESOURCE_ARN`
+- `TRAVELER_AURORA_SECRET_ARN`
+- `TRAVELER_AURORA_DATABASE=traveler_staging`
+- `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` when paid vision calls are enabled later
+
+Useful staging checks:
+
+```bash
+npm run aws:aurora:smoke
+npm run aws:sqs:smoke
+npm run aws:s3:smoke
+npm run api:smoke
+npm run worker:fixture-smoke
+```
+
+`worker:fixture-smoke` intentionally uses a deterministic recognizer fixture instead of OpenRouter. It proves the queue, worker, and Aurora write path without spending on vision calls.
+
 ## Get a fresh project
 
 When you're ready, run:
