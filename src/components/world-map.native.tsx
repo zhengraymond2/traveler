@@ -27,7 +27,10 @@ if (mapboxAccessToken) {
 
 export const mapCompassControlProps = {
   compassViewPosition: 1,
-  compassViewMargins: { x: MapControlLayout.right, y: MapControlLayout.compassTop },
+  compassPosition: { 
+    right: MapControlLayout.right, 
+    top: MapControlLayout.navTop 
+  },
 } as const;
 
 type WorldMapProps = {

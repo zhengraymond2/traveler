@@ -21,17 +21,16 @@ export const MapTerrainStyle = {
 
 export const MapControlLayout = {
   right: 27,
-  searchTop: 74,
-  compassTop: 132,
-  locationTop: 190,
-  size: 46,
+  top: 74,
+  navTop: 135,
+  size: 38,
   gap: 12,
 } as const;
 
 export const PhotoPinDensityStops = [
-  { maxZoom: 2, sampleRatio: 1, pinBudget: 30 },
-  { maxZoom: 4, sampleRatio: 1, pinBudget: 45 },
-  { maxZoom: 6, sampleRatio: 1, pinBudget: 60 },
-  { maxZoom: 8, sampleRatio: 1, pinBudget: 90 },
+  // { maxZoom: 2, sampleRatio: 1, pinBudget: 30 },
+  // { maxZoom: 4, sampleRatio: 1, pinBudget: 45 },
+  // { maxZoom: 6, sampleRatio: 1, pinBudget: 60 },
+  // { maxZoom: 8, sampleRatio: 1, pinBudget: 90 },
   { maxZoom: Number.POSITIVE_INFINITY, sampleRatio: 1, pinBudget: 100 },
 ] as const;
