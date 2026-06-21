@@ -1,4 +1,5 @@
 export * from './blob-store';
+export * from './database';
 export * from './events';
 export * from './local-location-store';
 export * from './location-directory';
