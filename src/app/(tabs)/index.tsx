@@ -94,7 +94,7 @@ export default function MapScreen() {
       return;
     }
 
-    mapRef.current?.moveToCountryCoordinate(option.center);
+    mapRef.current?.moveToSearchResult(option.center, option.zoomLevel);
   }
 }
 
