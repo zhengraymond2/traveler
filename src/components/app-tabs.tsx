@@ -33,6 +33,11 @@ export default function AppTabs() {
         />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="collections">
+        <NativeTabs.Trigger.Label>Collections</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="square.stack.3d.up.fill" />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="profile">
         <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={profileIconName} />

@@ -28,6 +28,18 @@ const webRepository: LocationRepository = {
     async listPhotosForLocation() {
       return [];
     },
+    async listCollections() {
+      return [];
+    },
+    async listCollectionsWithLocations() {
+      return [];
+    },
+    async listCollectionsForLocation() {
+      return [];
+    },
+    async getCollection() {
+      return null;
+    },
   },
   writer: {
     async createLocation() {
@@ -43,6 +55,27 @@ const webRepository: LocationRepository = {
       throw new Error('Database writes are only configured for native builds.');
     },
     async removePhoto() {
+      throw new Error('Database writes are only configured for native builds.');
+    },
+    async createCollection() {
+      throw new Error('Database writes are only configured for native builds.');
+    },
+    async renameCollection() {
+      throw new Error('Database writes are only configured for native builds.');
+    },
+    async deleteCollection() {
+      throw new Error('Database writes are only configured for native builds.');
+    },
+    async addLocationToCollection() {
+      throw new Error('Database writes are only configured for native builds.');
+    },
+    async removeLocationFromCollection() {
+      throw new Error('Database writes are only configured for native builds.');
+    },
+    async duplicateCollection() {
+      throw new Error('Database writes are only configured for native builds.');
+    },
+    async convertCollectionToShared() {
       throw new Error('Database writes are only configured for native builds.');
     },
   },

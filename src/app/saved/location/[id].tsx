@@ -1,13 +1,14 @@
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { Button, Card, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Card, Dialog, Menu, Portal, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
 import type { LocationWithPhotos } from '@/db/repository';
+import type { Collection } from '@/db/schema';
 
 export default function SavedLocationDetailScreen() {
   const theme = useTheme();
@@ -22,6 +23,9 @@ export default function SavedLocationDetailScreen() {
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [copyMessageVisible, setCopyMessageVisible] = React.useState(false);
   const [form, setForm] = React.useState<LocationEditForm>(emptyLocationEditForm);
+  const [collections, setCollections] = React.useState<Collection[]>([]);
+  const [isMenuVisible, setIsMenuVisible] = React.useState(false);
+  const [detailDialog, setDetailDialog] = React.useState<LocationDetailDialog>(null);
   const galleryGap = 2;
   const galleryItemSize = Math.floor((windowWidth - 32 - galleryGap * 2) / 3);
 
@@ -34,9 +38,13 @@ export default function SavedLocationDetailScreen() {
         setErrorMessage(null);
 
         try {
-          const savedLocation = id ? await reader.getLocation(id) : null;
+          const [savedLocation, savedCollections] = await Promise.all([
+            id ? reader.getLocation(id) : Promise.resolve(null),
+            reader.listCollections(),
+          ]);
           if (isActive) {
             setLocation(savedLocation);
+            setCollections(savedCollections);
             setForm(createEditForm(savedLocation));
             setIsEditing(false);
           }
@@ -67,9 +75,77 @@ export default function SavedLocationDetailScreen() {
           headerBackButtonDisplayMode: 'minimal',
           headerRight: () =>
             location && !isEditing ? (
-              <Button compact mode="text" onPress={handleStartEditing}>
-                Edit
-              </Button>
+              <Menu
+                visible={isMenuVisible}
+                onDismiss={() => setIsMenuVisible(false)}
+                anchor={
+                  <Button compact mode="text" onPress={() => setIsMenuVisible(true)}>
+                    ☰
+                  </Button>
+                }>
+                <Menu.Item
+                  title="Edit"
+                  leadingIcon="pencil"
+                  onPress={() => {
+                    setIsMenuVisible(false);
+                    handleStartEditing();
+                  }}
+                />
+                <Menu.Item
+                  title="Add to Collection"
+                  leadingIcon="playlist-plus"
+                  onPress={() => {
+                    setIsMenuVisible(false);
+                    setDetailDialog('collection');
+                  }}
+                />
+                <Menu.Item
+                  title="Copy GPS Coordinates"
+                  leadingIcon="content-copy"
+                  disabled={!formatCoordinates(location)}
+                  onPress={() => {
+                    setIsMenuVisible(false);
+                    void handleCopyCoordinates(formatCoordinates(location));
+                  }}
+                />
+                <Menu.Item
+                  title="Open in Google Maps"
+                  leadingIcon="map-marker"
+                  onPress={() => {
+                    setIsMenuVisible(false);
+                    void Linking.openURL(getGoogleMapsUrl(location));
+                  }}
+                />
+                {location.instagramUrl ? (
+                  <Menu.Item
+                    title="Open Instagram"
+                    leadingIcon="instagram"
+                    onPress={() => {
+                      setIsMenuVisible(false);
+                      void Linking.openURL(location.instagramUrl || '');
+                    }}
+                  />
+                ) : null}
+                {location.trailMapUrl ? (
+                  <Menu.Item
+                    title="Open Trail Map"
+                    leadingIcon="map"
+                    onPress={() => {
+                      setIsMenuVisible(false);
+                      void Linking.openURL(location.trailMapUrl || '');
+                    }}
+                  />
+                ) : null}
+                <Menu.Item
+                  title="Delete Location"
+                  leadingIcon="delete"
+                  titleStyle={{ color: theme.colors.error }}
+                  onPress={() => {
+                    setIsMenuVisible(false);
+                    setDetailDialog('delete');
+                  }}
+                />
+              </Menu>
             ) : null,
         }}
       />
@@ -177,6 +253,57 @@ export default function SavedLocationDetailScreen() {
         onDismiss={() => setCopyMessageVisible(false)}>
         GPS coordinates copied
       </Snackbar>
+
+      <Portal>
+        <Dialog visible={detailDialog === 'collection'} onDismiss={() => setDetailDialog(null)}>
+          <Dialog.Title>Add to Collection</Dialog.Title>
+          <Dialog.Content>
+            <ScrollView style={styles.collectionPicker}>
+              {collections.filter((collection) => collection.kind === 'local').map((collection) => (
+                <Button
+                  key={collection.id}
+                  contentStyle={styles.collectionPickerButton}
+                  onPress={() => handleAddToCollection(collection.id)}>
+                  {collection.title}
+                </Button>
+              ))}
+
+              {collections.some((collection) => collection.kind === 'shared') ? (
+                <Text selectable={false} variant="labelSmall" style={styles.sharedAlbumsLabel}>
+                  Shared Albums
+                </Text>
+              ) : null}
+
+              {collections.filter((collection) => collection.kind === 'shared').map((collection) => (
+                <Button
+                  key={collection.id}
+                  contentStyle={styles.collectionPickerButton}
+                  onPress={() => handleAddToCollection(collection.id)}>
+                  {collection.title}
+                </Button>
+              ))}
+            </ScrollView>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDetailDialog(null)}>Cancel</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={detailDialog === 'delete'} onDismiss={() => setDetailDialog(null)}>
+          <Dialog.Title>Delete Location</Dialog.Title>
+          <Dialog.Content>
+            <Text selectable variant="bodyMedium">
+              Delete this saved location entirely? It will also be removed from every collection.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDetailDialog(null)}>Cancel</Button>
+            <Button textColor={theme.colors.error} onPress={handleDeleteLocation}>
+              Delete
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </>
   );
 
@@ -233,7 +360,36 @@ export default function SavedLocationDetailScreen() {
       setIsSaving(false);
     }
   }
+
+  async function handleAddToCollection(collectionId: string) {
+    if (!location) {
+      return;
+    }
+
+    try {
+      await writer.addLocationToCollection(collectionId, location.id);
+      setDetailDialog(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to add location to collection.');
+    }
+  }
+
+  async function handleDeleteLocation() {
+    if (!location) {
+      return;
+    }
+
+    try {
+      await writer.deleteLocation(location.id);
+      setDetailDialog(null);
+      router.back();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to delete location.');
+    }
+  }
 }
+
+type LocationDetailDialog = null | 'collection' | 'delete';
 
 type LocationEditForm = {
   category: string;
@@ -493,5 +649,18 @@ const styles = StyleSheet.create({
   },
   galleryImage: {
     backgroundColor: AppColors.surfaceMuted,
+  },
+  collectionPicker: {
+    maxHeight: 360,
+  },
+  collectionPickerButton: {
+    justifyContent: 'flex-start',
+  },
+  sharedAlbumsLabel: {
+    paddingHorizontal: 8,
+    paddingTop: 16,
+    paddingBottom: 6,
+    color: AppColors.textMuted,
+    fontWeight: '800',
   },
 });
