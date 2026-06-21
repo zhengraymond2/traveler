@@ -4,7 +4,9 @@
   "version": "1.0.0",
   "dependencies": {
     "@aws-sdk/client-rds-data": "^3.1073.0",
+    "@aws-sdk/client-s3": "^3.1073.0",
     "@aws-sdk/client-sqs": "^3.1073.0",
+    "@aws-sdk/s3-request-presigner": "^3.1073.0",
     "@expo/ui": "~56.0.17",
     "@expo/vector-icons": "^15.1.1",
     "@osamaq/drag-select": "^0.2.0",
@@ -68,7 +70,8 @@
     "lint": "expo lint",
     "db:generate": "drizzle-kit generate",
     "aws:aurora:smoke": "tsx scripts/aurora-location-smoke-test.ts",
-    "aws:sqs:smoke": "tsx scripts/sqs-events-smoke-test.ts"
+    "aws:sqs:smoke": "tsx scripts/sqs-events-smoke-test.ts",
+    "aws:s3:smoke": "tsx scripts/s3-blob-smoke-test.ts"
   },
   "jest": {
     "preset": "jest-expo",
