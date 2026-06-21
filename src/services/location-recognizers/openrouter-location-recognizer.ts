@@ -3,7 +3,6 @@ import type {
   PartialLocation,
   RecognitionConfidence,
   RecognizedLocation,
-  RecognizedLocationResult,
 } from '@/services/contracts';
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Pick<Response, 'json' | 'ok' | 'status'>>;
@@ -44,7 +43,7 @@ export function createOpenRouterLocationRecognizer(config: OpenRouterConfig, fet
         };
       }
 
-      const body = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
+      const body = (await response.json()) as { choices?: { message?: { content?: string } }[] };
       const content = body.choices?.[0]?.message?.content;
       if (!content) {
         return {

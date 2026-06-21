@@ -127,13 +127,13 @@ export function loadAwsEventsConfigFromEnv(env: Record<string, string | undefine
 }
 
 function getMessages(response: Record<string, unknown>) {
-  return (Array.isArray(response.Messages) ? response.Messages : []) as Array<{
+  return (Array.isArray(response.Messages) ? response.Messages : []) as {
     Attributes?: Record<string, string>;
     ApproximateReceiveCount?: string;
     Body?: string;
     MessageId?: string;
     ReceiptHandle?: string;
-  }>;
+  }[];
 }
 
 function parsePartialLocationMessage(body: string): PartialLocation {

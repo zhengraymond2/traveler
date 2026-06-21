@@ -14,7 +14,7 @@ describe('OpenRouterLocationRecognizer', () => {
   });
 
   test('sends multimodal prompt and parses recognized JSON response', async () => {
-    const fetchCalls: Array<{ body: Record<string, unknown>; headers: Record<string, string>; url: string }> = [];
+    const fetchCalls: { body: Record<string, unknown>; headers: Record<string, string>; url: string }[] = [];
     const recognizer = createOpenRouterLocationRecognizer(
       {
         apiKey: 'key',
