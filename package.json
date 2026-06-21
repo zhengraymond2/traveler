@@ -74,7 +74,8 @@
     "aws:aurora:smoke": "tsx scripts/aurora-location-smoke-test.ts",
     "aws:sqs:smoke": "tsx scripts/sqs-events-smoke-test.ts",
     "aws:s3:smoke": "tsx scripts/s3-blob-smoke-test.ts",
-    "api:smoke": "tsx scripts/location-api-smoke-test.ts"
+    "api:smoke": "tsx scripts/location-api-smoke-test.ts",
+    "worker:fixture-smoke": "tsx scripts/location-worker-fixture-smoke-test.ts"
   },
   "jest": {
     "preset": "jest-expo",
