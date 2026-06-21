@@ -42,5 +42,8 @@ example
 /ios
 /android
 
+# local worktrees
+.worktrees/
+
 # don't commit secrets:
 .env
