@@ -9,7 +9,7 @@ import type {
   RecognizedLocation,
 } from '@/services/contracts';
 
-type SqlLocationDirectoryOptions = {
+export type SqlLocationDirectoryOptions = {
   coordinateToleranceDegrees?: number;
   createId?: (input: RecognizedLocation) => string;
   limit?: number;
