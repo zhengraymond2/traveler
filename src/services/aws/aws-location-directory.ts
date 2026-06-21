@@ -1,17 +1,12 @@
-import type {
-  Location,
-  LocationDirectory,
-  LocationSearchResult,
-  PartialLocation,
-  RecognizedLocation,
-} from '@/services/contracts';
+import { SqlLocationDirectory, type SqlLocationDirectoryOptions } from '@/services/db';
 
-export class AwsLocationDirectory implements LocationDirectory {
-  async search(_input: PartialLocation): Promise<LocationSearchResult[]> {
-    throw new Error('AwsLocationDirectory is not configured. Provide the RDB/API connection on the server.');
-  }
+import { createAwsStagingDatabaseFromEnv } from './aws-aurora-data-api-database';
 
-  async upsertLocation(_input: RecognizedLocation): Promise<Location> {
-    throw new Error('AwsLocationDirectory is not configured. Provide the RDB/API connection on the server.');
+export class AwsLocationDirectory extends SqlLocationDirectory {
+  static async fromStagingEnv(
+    env?: Record<string, string | undefined>,
+    options?: SqlLocationDirectoryOptions
+  ): Promise<AwsLocationDirectory> {
+    return new AwsLocationDirectory(await createAwsStagingDatabaseFromEnv(env), options);
   }
 }
