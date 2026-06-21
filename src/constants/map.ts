@@ -16,6 +16,15 @@ export const MapTerrainStyle = {
   exaggeration: 1.25,
 } as const;
 
+export const MapControlLayout = {
+  right: 27,
+  searchTop: 74,
+  compassTop: 132,
+  locationTop: 190,
+  size: 46,
+  gap: 12,
+} as const;
+
 export const PhotoPinDensityStops = [
   { maxZoom: 2, sampleRatio: 1, pinBudget: 30 },
   { maxZoom: 4, sampleRatio: 1, pinBudget: 45 },

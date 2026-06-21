@@ -4,6 +4,7 @@ import { Keyboard, Pressable, StyleSheet, TextInput, useWindowDimensions, View }
 import { Text } from 'react-native-paper';
 import Animated, { FadeIn, FadeOut, LinearTransition, ZoomIn, ZoomOut } from 'react-native-reanimated';
 
+import { MapControlLayout } from '@/constants/map';
 import { AppColors } from '@/constants/theme';
 import {
   filterMapRegionSearchOptions,
@@ -146,21 +147,21 @@ export function MapRegionSearch({ onSelect, options }: MapRegionSearchProps) {
 const styles = StyleSheet.create({
   collapsedContainer: {
     position: 'absolute',
-    top: 74,
-    right: 27,
+    top: MapControlLayout.searchTop,
+    right: MapControlLayout.right,
   },
   searchButton: {
-    width: 46,
-    height: 46,
+    width: MapControlLayout.size,
+    height: MapControlLayout.size,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 23,
+    borderRadius: MapControlLayout.size / 2,
     backgroundColor: AppColors.surface,
     boxShadow: `0 7px 18px ${AppColors.shadow}`,
   },
   expandedPanel: {
     position: 'absolute',
-    top: 74,
+    top: MapControlLayout.searchTop,
     overflow: 'hidden',
     borderRadius: 18,
     backgroundColor: AppColors.surface,
