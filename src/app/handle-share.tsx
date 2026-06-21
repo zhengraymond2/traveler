@@ -13,16 +13,7 @@ export default function HandleShareScreen() {
   const { locationIntakeService } = useServices();
   const hasLoggedShareRef = React.useRef(false);
 
-  React.useEffect(() => {
-    if (isResolving || hasLoggedShareRef.current) {
-      return;
-    }
-
-    hasLoggedShareRef.current = true;
-    void processSharedPayloads();
-  }, [isResolving, locationIntakeService, resolvedSharedPayloads, sharedPayloads]);
-
-  async function processSharedPayloads() {
+  const processSharedPayloads = React.useCallback(async () => {
     const log = buildShareIntakeLog(sharedPayloads, resolvedSharedPayloads);
     const payloadsToProcess = resolvedSharedPayloads.length ? resolvedSharedPayloads : sharedPayloads;
     const addSourceInputs = buildAddSourceInputsFromSharedPayloads(payloadsToProcess);
@@ -36,7 +27,16 @@ export default function HandleShareScreen() {
       clearSharedPayloads();
       router.replace('/(tabs)/saved');
     }
-  }
+  }, [locationIntakeService, resolvedSharedPayloads, sharedPayloads]);
+
+  React.useEffect(() => {
+    if (isResolving || hasLoggedShareRef.current) {
+      return;
+    }
+
+    hasLoggedShareRef.current = true;
+    void processSharedPayloads();
+  }, [isResolving, processSharedPayloads]);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.background }]}>

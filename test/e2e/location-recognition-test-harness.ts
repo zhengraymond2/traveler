@@ -2,10 +2,10 @@ import type { Location } from '@/services/contracts';
 import { createLocationIntakeService } from '@/services/location-intake';
 import { processNextPartialLocations } from '@/services/location-worker';
 
-import { FakeLocationRecognizer } from '../../local-services/fake-location-recognizer';
-import { createLocalEventsStore, LocalEventsReader, LocalEventsWriter } from '../../local-services/local-events';
-import { LocalLocationDirectory } from '../../local-services/local-location-directory';
-import { LocalLocalLocationStore } from '../../local-services/local-local-location-store';
+import { FakeLocationRecognizer } from '../local-services/fake-location-recognizer';
+import { createLocalEventsStore, LocalEventsReader, LocalEventsWriter } from '../local-services/local-events';
+import { LocalLocationDirectory } from '../local-services/local-location-directory';
+import { LocalLocalLocationStore } from '../local-services/local-local-location-store';
 
 export function createRecognitionTestHarness({
   canonicalLocations = [],

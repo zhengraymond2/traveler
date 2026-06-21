@@ -1,4 +1,4 @@
-import { createRecognitionTestHarness } from './location-recognition-test-harness';
+import { createRecognitionTestHarness } from '../location-recognition-test-harness';
 import { greatWallSourceFixture, greatWallSourcePhotoUri } from '../../fixtures/location-recognition/great-wall-source';
 
 describe('local location recognition flow', () => {
