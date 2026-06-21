@@ -1,10 +1,16 @@
-import { asc, desc, eq, isNull, or } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, ne, or } from 'drizzle-orm';
 
 import type { AppDatabase } from './client';
 import { dedupeLocationRecord } from './dedupe-locations';
 import {
+  collectionLocations,
+  collections,
+  type Collection,
+  type CollectionKind,
   locationPhotos,
   locations,
+  type NewCollection,
+  type NewCollectionLocation,
   type Location,
   type LocationPhoto,
   type NewLocation,
@@ -13,6 +19,10 @@ import {
 
 export type LocationWithPhotos = Location & {
   photos: LocationPhoto[];
+};
+
+export type SavedCollectionWithLocations = Collection & {
+  locations: LocationWithPhotos[];
 };
 
 export type CreateLocationInput = {
@@ -39,6 +49,18 @@ export type AddLocationPhotoInput = {
   caption?: string;
 };
 
+export type CreateCollectionInput = {
+  title: string;
+  kind?: CollectionKind;
+};
+
+export type DuplicateCollectionInput = {
+  id: string;
+  title: string;
+  kind?: CollectionKind;
+  sourceCollectionId?: string | null;
+};
+
 export interface LocationReader {
   listLocations(): Promise<Location[]>;
   listLocationsWithPhotos(): Promise<LocationWithPhotos[]>;
@@ -48,6 +70,10 @@ export interface LocationReader {
   listLocationsWithoutCountryWithPhotos(): Promise<LocationWithPhotos[]>;
   getLocation(id: string): Promise<LocationWithPhotos | null>;
   listPhotosForLocation(locationId: string): Promise<LocationPhoto[]>;
+  listCollections(): Promise<Collection[]>;
+  listCollectionsWithLocations(): Promise<SavedCollectionWithLocations[]>;
+  listCollectionsForLocation(locationId: string): Promise<Collection[]>;
+  getCollection(id: string): Promise<SavedCollectionWithLocations | null>;
 }
 
 export interface LocationWriter {
@@ -56,6 +82,13 @@ export interface LocationWriter {
   deleteLocation(id: string): Promise<void>;
   addPhoto(input: AddLocationPhotoInput): Promise<LocationPhoto>;
   removePhoto(id: string): Promise<void>;
+  createCollection(input: CreateCollectionInput): Promise<Collection>;
+  renameCollection(id: string, title: string): Promise<Collection | null>;
+  deleteCollection(id: string): Promise<void>;
+  addLocationToCollection(collectionId: string, locationId: string): Promise<void>;
+  removeLocationFromCollection(collectionId: string, locationId: string): Promise<void>;
+  duplicateCollection(input: DuplicateCollectionInput): Promise<Collection>;
+  convertCollectionToShared(id: string, title?: string): Promise<Collection>;
 }
 
 export type LocationRepository = {
@@ -124,6 +157,49 @@ function createLocationReader(database: AppDatabase): LocationReader {
         .where(eq(locationPhotos.locationId, locationId))
         .orderBy(asc(locationPhotos.createdAt));
     },
+
+    async listCollections() {
+      return database
+        .select()
+        .from(collections)
+        .orderBy(asc(collections.kind), asc(collections.title), asc(collections.createdAt));
+    },
+
+    async listCollectionsWithLocations() {
+      const savedCollections = await this.listCollections();
+      return withCollectionLocations(savedCollections, this.getCollection);
+    },
+
+    async listCollectionsForLocation(locationId) {
+      const memberships = await database
+        .select({ collection: collections })
+        .from(collectionLocations)
+        .innerJoin(collections, eq(collectionLocations.collectionId, collections.id))
+        .where(eq(collectionLocations.locationId, locationId))
+        .orderBy(asc(collections.kind), asc(collections.title));
+
+      return memberships.map((membership) => membership.collection);
+    },
+
+    async getCollection(id) {
+      const [collection] = await database.select().from(collections).where(eq(collections.id, id)).limit(1);
+      if (!collection) {
+        return null;
+      }
+
+      const memberships = await database
+        .select({ location: locations })
+        .from(collectionLocations)
+        .innerJoin(locations, eq(collectionLocations.locationId, locations.id))
+        .where(eq(collectionLocations.collectionId, id))
+        .orderBy(asc(locations.name), desc(locations.createdAt));
+      const collectionLocationsWithPhotos = await withPhotos(
+        memberships.map((membership) => membership.location),
+        this.listPhotosForLocation
+      );
+
+      return { ...collection, locations: collectionLocationsWithPhotos };
+    },
   };
 }
 
@@ -136,6 +212,19 @@ async function withPhotos(
       ...location,
       photos: await listPhotosForLocation(location.id),
     }))
+  );
+}
+
+async function withCollectionLocations(
+  savedCollections: Collection[],
+  getCollection: (id: string) => Promise<SavedCollectionWithLocations | null>
+) {
+  const collectionsWithLocations = await Promise.all(
+    savedCollections.map(async (collection) => getCollection(collection.id))
+  );
+
+  return collectionsWithLocations.filter((collection): collection is SavedCollectionWithLocations =>
+    Boolean(collection)
   );
 }
 
@@ -225,6 +314,125 @@ function createLocationWriter(database: AppDatabase): LocationWriter {
     async removePhoto(id) {
       await database.delete(locationPhotos).where(eq(locationPhotos.id, id));
     },
+
+    async createCollection(input) {
+      const now = new Date();
+      const collection: NewCollection = {
+        id: createLocalId(),
+        title: normalizeCollectionTitle(input.title),
+        kind: input.kind ?? 'local',
+        sourceCollectionId: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await database.insert(collections).values(collection);
+
+      const [createdCollection] = await database
+        .select()
+        .from(collections)
+        .where(eq(collections.id, collection.id))
+        .limit(1);
+      return createdCollection;
+    },
+
+    async renameCollection(id, title) {
+      await database
+        .update(collections)
+        .set({
+          title: normalizeCollectionTitle(title),
+          updatedAt: new Date(),
+        })
+        .where(eq(collections.id, id));
+
+      const [updatedCollection] = await database.select().from(collections).where(eq(collections.id, id)).limit(1);
+      return updatedCollection ?? null;
+    },
+
+    async deleteCollection(id) {
+      await database.delete(collections).where(eq(collections.id, id));
+    },
+
+    async addLocationToCollection(collectionId, locationId) {
+      const membership: NewCollectionLocation = {
+        collectionId,
+        locationId,
+        createdAt: new Date(),
+      };
+
+      await database.insert(collectionLocations).values(membership).onConflictDoNothing();
+      await touchCollection(database, collectionId);
+    },
+
+    async removeLocationFromCollection(collectionId, locationId) {
+      await database
+        .delete(collectionLocations)
+        .where(
+          and(
+            eq(collectionLocations.collectionId, collectionId),
+            eq(collectionLocations.locationId, locationId)
+          )
+        );
+      await touchCollection(database, collectionId);
+    },
+
+    async duplicateCollection(input) {
+      const [sourceCollection] = await database.select().from(collections).where(eq(collections.id, input.id)).limit(1);
+      if (!sourceCollection) {
+        throw new Error('Collection not found.');
+      }
+
+      const now = new Date();
+      const duplicatedCollection: NewCollection = {
+        id: createLocalId(),
+        title: normalizeCollectionTitle(input.title),
+        kind: input.kind ?? sourceCollection.kind,
+        sourceCollectionId: input.sourceCollectionId ?? sourceCollection.id,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await database.insert(collections).values(duplicatedCollection);
+
+      const memberships = await database
+        .select()
+        .from(collectionLocations)
+        .where(eq(collectionLocations.collectionId, sourceCollection.id));
+      if (memberships.length) {
+        await database.insert(collectionLocations).values(
+          memberships.map<NewCollectionLocation>((membership) => ({
+            collectionId: duplicatedCollection.id,
+            locationId: membership.locationId,
+            createdAt: now,
+          }))
+        );
+      }
+
+      const [createdCollection] = await database
+        .select()
+        .from(collections)
+        .where(eq(collections.id, duplicatedCollection.id))
+        .limit(1);
+      return createdCollection;
+    },
+
+    async convertCollectionToShared(id, title) {
+      const [sourceCollection] = await database
+        .select()
+        .from(collections)
+        .where(and(eq(collections.id, id), ne(collections.kind, 'shared')))
+        .limit(1);
+      if (!sourceCollection) {
+        throw new Error('Collection not found.');
+      }
+
+      return this.duplicateCollection({
+        id,
+        title: title ?? sourceCollection.title,
+        kind: 'shared',
+        sourceCollectionId: sourceCollection.id,
+      });
+    },
   };
 }
 
@@ -265,6 +473,19 @@ function normalizeLocationUpdate(input: UpdateLocationInput) {
 function normalizeText(value: string | undefined) {
   const normalized = value?.trim();
   return normalized ? normalized : null;
+}
+
+function normalizeCollectionTitle(value: string) {
+  const normalized = value.trim();
+  if (!normalized) {
+    throw new Error('Collection name is required.');
+  }
+
+  return normalized;
+}
+
+async function touchCollection(database: AppDatabase, id: string) {
+  await database.update(collections).set({ updatedAt: new Date() }).where(eq(collections.id, id));
 }
 
 function createLocalId() {

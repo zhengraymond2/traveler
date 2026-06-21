@@ -1,10 +1,9 @@
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import * as React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 
+import { ImageListRow } from '@/components/image-list-row';
 import { PulsingView } from '@/components/pulsing-view';
 import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
@@ -79,10 +78,12 @@ export default function SavedLocationsScreen() {
       {countries.map((country) => (
         <React.Fragment key={country.name}>
           <PulsingView active={isLoading}>
-            <CountryRow
-              country={country.name}
+            <ImageListRow
+              accessibilityLabel={`Open saved locations for ${country.name}`}
               imageUri={country.imageUri}
               isLoading={isLoading}
+              testID={`saved-country-row-${country.name}`}
+              title={country.name}
               onPress={() => router.push({ pathname: '/saved/[country]', params: { country: country.name } })}
             />
           </PulsingView>
@@ -100,15 +101,6 @@ const styles = StyleSheet.create({
     gap: 1,
     paddingVertical: 16,
     paddingBottom: 32,
-  },
-  countryRow: {
-    height: 180,
-    overflow: 'hidden',
-    borderRadius: 0,
-    backgroundColor: AppColors.surfaceVariant,
-  },
-  countryRowLoading: {
-    backgroundColor: AppColors.surfaceMuted,
   },
   emptyCard: {
     borderRadius: 8,
@@ -129,70 +121,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: AppColors.surface,
   },
-  rowImage: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-  },
-  rowGradient: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    justifyContent: 'flex-end',
-    padding: 16,
-  },
-  rowFallbackOverlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: AppColors.imageFallback,
-  },
-  countryTitle: {
-    color: AppColors.textInverse,
-    fontWeight: '800',
-    textShadowColor: AppColors.textShadow,
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
-  },
 });
-
-function CountryRow({
-  country,
-  imageUri,
-  isLoading,
-  onPress,
-}: {
-  country: string;
-  imageUri?: string;
-  isLoading: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityLabel={`Open saved locations for ${country}`}
-      accessibilityRole="button"
-      disabled={isLoading}
-      testID={`saved-country-row-${country}`}
-      style={[styles.countryRow, isLoading && styles.countryRowLoading]}
-      onPress={onPress}>
-      {imageUri ? <Image source={{ uri: imageUri }} style={styles.rowImage} contentFit="cover" /> : <View style={styles.rowFallbackOverlay} />}
-      <LinearGradient
-        colors={[AppColors.overlayTransparent, AppColors.overlaySoft, AppColors.overlayStrong]}
-        locations={[0, 0.45, 1]}
-        style={styles.rowGradient}>
-        <Text selectable={false} variant="headlineSmall" numberOfLines={1} style={styles.countryTitle}>
-          {country}
-        </Text>
-      </LinearGradient>
-    </Pressable>
-  );
-}
 
 function LoadingCountryRows() {
   return (
