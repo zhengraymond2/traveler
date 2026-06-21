@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 420" role="img" aria-labelledby="title desc">
+  <title>Placebook white wordmark</title>
+  <desc>White Placebook lettering using a rounded, confident travel-app wordmark style.</desc>
+  <g fill="#FFFFFF">
+    <path d="M129 82h164c98 0 168 66 168 157 0 93-70 160-168 160h-80v132h-84V82Zm84 80v157h73c55 0 91-31 91-79 0-47-36-78-91-78h-73Z" transform="scale(.76) translate(0 0)"/>
+  </g>
+  <text x="208" y="276" fill="#FFFFFF" font-family="Avenir Next Rounded, Avenir Next, Nunito Sans, Inter, Arial Rounded MT Bold, sans-serif" font-size="188" font-weight="800" letter-spacing="0">Placebook</text>
+</svg>

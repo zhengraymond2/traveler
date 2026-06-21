@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title>Placebook app icon concept 06 - map heart</title>
+  <rect width="1024" height="1024" rx="224" fill="#FF385C"/>
+  <path d="M236 277c0-40 32-72 72-72h408c40 0 72 32 72 72v470c0 40-32 72-72 72H308c-40 0-72-32-72-72V277Z" fill="#FFFFFF"/>
+  <path d="M368 205v614M656 205v614" stroke="#FF385C" stroke-width="28" stroke-linecap="round" opacity=".92"/>
+  <path d="M512 642l-32-29C366 510 294 445 294 365c0-66 51-116 116-116 37 0 73 17 102 44 29-27 65-44 102-44 65 0 116 50 116 116 0 80-72 145-186 248l-32 29Z" fill="#FF385C"/>
+  <circle cx="512" cy="365" r="42" fill="#FFFFFF"/>
+</svg>

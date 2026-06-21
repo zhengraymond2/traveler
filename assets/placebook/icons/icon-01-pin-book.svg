@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title>Placebook app icon concept 01 - pin book</title>
+  <rect width="1024" height="1024" rx="224" fill="#FF385C"/>
+  <path d="M294 270c0-38 30-68 68-68h150v616H362c-38 0-68-30-68-68V270Z" fill="#FFFFFF" opacity=".96"/>
+  <path d="M512 202h150c38 0 68 30 68 68v480c0 38-30 68-68 68H512V202Z" fill="#FFFFFF" opacity=".86"/>
+  <path d="M512 202v616" stroke="#FF385C" stroke-width="30" stroke-linecap="round"/>
+  <path d="M512 332c-94 0-170 76-170 170 0 116 170 294 170 294s170-178 170-294c0-94-76-170-170-170Z" fill="#FFFFFF"/>
+  <circle cx="512" cy="500" r="58" fill="#FF385C"/>
+</svg>

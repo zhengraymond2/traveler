@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title>Placebook app icon concept 04 - open route</title>
+  <rect width="1024" height="1024" rx="224" fill="#FF385C"/>
+  <path d="M514 259c-56-58-134-85-228-79-39 3-70 36-70 75v442c0 38 32 68 69 65 98-8 175 14 229 67V259Z" fill="#FFFFFF"/>
+  <path d="M510 259c56-58 134-85 228-79 39 3 70 36 70 75v442c0 38-32 68-69 65-98-8-175 14-229 67V259Z" fill="#FFFFFF" opacity=".86"/>
+  <path d="M350 430c66-68 137 65 205 0 70-67 122 39 174-15" stroke="#FF385C" stroke-width="38" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="350" cy="430" r="36" fill="#FF385C"/>
+  <circle cx="729" cy="415" r="36" fill="#FF385C"/>
+</svg>

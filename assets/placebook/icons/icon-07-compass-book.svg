@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title>Placebook app icon concept 07 - compass book</title>
+  <rect width="1024" height="1024" rx="224" fill="#FF385C"/>
+  <path d="M257 225h510c34 0 62 28 62 62v450c0 34-28 62-62 62H257c-34 0-62-28-62-62V287c0-34 28-62 62-62Z" fill="#FFFFFF"/>
+  <path d="M512 225v574" stroke="#FF385C" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="512" cy="512" r="178" fill="#FF385C"/>
+  <circle cx="512" cy="512" r="126" fill="#FFFFFF"/>
+  <path d="M568 456l-32 112-112 32 32-112 112-32Z" fill="#FF385C"/>
+  <circle cx="512" cy="512" r="28" fill="#FFFFFF"/>
+</svg>

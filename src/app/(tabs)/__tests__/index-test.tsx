@@ -74,6 +74,17 @@ describe('MapScreen', () => {
     });
     expect(locationButtonStyle.bottom).toBeUndefined();
   });
+
+  test('sizes the current-location glyph to match the compass diameter', async () => {
+    const screen = await UITestHelper.renderWithPaper(<MapScreen />);
+    const locationGlyph = screen.getByTestId('current-location-glyph');
+    const locationGlyphStyle = StyleSheet.flatten(locationGlyph.props.style);
+
+    expect(locationGlyphStyle).toMatchObject({
+      width: 30,
+      height: 30,
+    });
+  });
 });
 
 function resolvePressableStyle(style: unknown) {

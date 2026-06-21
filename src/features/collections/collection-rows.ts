@@ -12,6 +12,7 @@ export type CollectionRow = {
   title: string;
   kind: 'local' | 'shared';
   imageUri?: string;
+  imageUris: string[];
 };
 
 export function getCollectionRows(collections: CollectionRowSource[]): CollectionRow[] {
@@ -28,16 +29,21 @@ export function getCollectionRows(collections: CollectionRowSource[]): Collectio
       title: collection.title,
       kind: collection.kind,
       imageUri: getStableRandomPhotoUri(collection),
+      imageUris: getCollectionPhotoUris(collection).slice(0, 4),
     }));
 }
 
 function getStableRandomPhotoUri(collection: CollectionRowSource) {
-  const photos = collection.locations.flatMap((location) => location.photos);
-  if (!photos.length) {
+  const photoUris = getCollectionPhotoUris(collection);
+  if (!photoUris.length) {
     return undefined;
   }
 
-  return photos[hashString(collection.id) % photos.length]?.uri;
+  return photoUris[hashString(collection.id) % photoUris.length];
+}
+
+function getCollectionPhotoUris(collection: CollectionRowSource) {
+  return collection.locations.flatMap((location) => location.photos.map((photo) => photo.uri));
 }
 
 function hashString(value: string) {

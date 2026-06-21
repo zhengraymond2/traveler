@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { Text } from 'react-native-paper';
 
 import { AppColors } from '@/constants/theme';
@@ -11,6 +12,7 @@ export function ImageListRow({
   imageUri,
   isLoading = false,
   onPress,
+  style,
   testID,
   title,
 }: {
@@ -18,6 +20,7 @@ export function ImageListRow({
   imageUri?: string;
   isLoading?: boolean;
   onPress: () => void;
+  style?: StyleProp<ViewStyle>;
   testID?: string;
   title: string;
 }) {
@@ -27,7 +30,7 @@ export function ImageListRow({
       accessibilityRole="button"
       disabled={isLoading}
       testID={testID}
-      style={[styles.row, isLoading && styles.rowLoading]}
+      style={[styles.row, style, isLoading && styles.rowLoading]}
       onPress={onPress}>
       {imageUri ? <Image source={{ uri: imageUri }} style={styles.rowImage} contentFit="cover" /> : <View style={styles.rowFallbackOverlay} />}
       <LinearGradient

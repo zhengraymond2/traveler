@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title>Placebook app icon concept 10 - monogram P</title>
+  <rect width="1024" height="1024" rx="224" fill="#FF385C"/>
+  <path d="M331 210h224c128 0 220 86 220 206 0 121-92 208-220 208H449v190H331V210Zm118 112v190h96c67 0 112-38 112-96 0-57-45-94-112-94h-96Z" fill="#FFFFFF"/>
+  <path d="M596 404c0-46 37-84 84-84s84 38 84 84c0 58-84 148-84 148s-84-90-84-148Z" fill="#FFFFFF"/>
+  <circle cx="680" cy="404" r="25" fill="#FF385C"/>
+  <path d="M449 624c62 14 121 37 178 71" stroke="#FFFFFF" stroke-width="38" stroke-linecap="round" fill="none"/>
+</svg>

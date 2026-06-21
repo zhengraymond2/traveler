@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" role="img" aria-labelledby="title desc">
+  <title>Placebook first-open animation</title>
+  <desc>Airbnb-red opening screen where a white book map draws in, a pin lands, and the Placebook wordmark fades up.</desc>
+  <style>
+    .screen { fill: #FF385C; }
+    .white { fill: #FFFFFF; }
+    .line { fill: none; stroke: #FFFFFF; stroke-width: 34; stroke-linecap: round; stroke-linejoin: round; }
+    .draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 820ms cubic-bezier(.2,.8,.2,1) 130ms forwards; }
+    .pin { opacity: 0; transform-origin: 540px 796px; animation: drop 640ms cubic-bezier(.2,1.4,.3,1) 560ms forwards; }
+    .word { opacity: 0; animation: fadeUp 520ms cubic-bezier(.2,.8,.2,1) 1080ms forwards; }
+    .fade { animation: holdFade 1700ms cubic-bezier(.2,.8,.2,1) forwards; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    @keyframes drop {
+      0% { opacity: 0; transform: translateY(-80px) scale(.72); }
+      64% { opacity: 1; transform: translateY(10px) scale(1.08); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes fadeUp {
+      0% { opacity: 0; transform: translateY(22px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes holdFade {
+      0%, 82% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+  </style>
+  <g class="fade">
+    <rect class="screen" width="1080" height="1920"/>
+    <path class="white" opacity=".9" d="M313 604c0-39 31-70 70-70h157v428H383c-39 0-70-31-70-70V604Z"/>
+    <path class="white" opacity=".82" d="M540 534h157c39 0 70 31 70 70v288c0 39-31 70-70 70H540V534Z"/>
+    <path class="line draw" pathLength="1" d="M381 723c72-74 151 72 226 0 78-75 136 45 194-17"/>
+    <g class="pin">
+      <path class="white" d="M540 650c-84 0-152 68-152 152 0 104 152 263 152 263s152-159 152-263c0-84-68-152-152-152Z"/>
+      <circle class="screen" cx="540" cy="802" r="50"/>
+    </g>
+    <text class="word" x="540" y="1218" text-anchor="middle" fill="#FFFFFF" font-family="Avenir Next Rounded, Avenir Next, Nunito Sans, Inter, Arial Rounded MT Bold, sans-serif" font-size="142" font-weight="800" letter-spacing="0">Placebook</text>
+  </g>
+</svg>

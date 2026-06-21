@@ -46,4 +46,33 @@ describe('collection rows', () => {
       imageUri: 'file:///azores.jpg',
     });
   });
+
+  test('uses up to four member photos for the collection gallery cover', () => {
+    const rows = getCollectionRows([
+      {
+        id: 'azores',
+        title: 'Azores',
+        kind: 'local',
+        locations: [
+          DbTestHelper.locationWithPhotos({
+            id: 'pico',
+            photos: [
+              DbTestHelper.locationPhoto({ id: 'photo-1', uri: 'file:///one.jpg' }),
+              DbTestHelper.locationPhoto({ id: 'photo-2', uri: 'file:///two.jpg' }),
+              DbTestHelper.locationPhoto({ id: 'photo-3', uri: 'file:///three.jpg' }),
+              DbTestHelper.locationPhoto({ id: 'photo-4', uri: 'file:///four.jpg' }),
+              DbTestHelper.locationPhoto({ id: 'photo-5', uri: 'file:///five.jpg' }),
+            ],
+          }),
+        ],
+      },
+    ]);
+
+    expect(rows[0].imageUris).toEqual([
+      'file:///one.jpg',
+      'file:///two.jpg',
+      'file:///three.jpg',
+      'file:///four.jpg',
+    ]);
+  });
 });

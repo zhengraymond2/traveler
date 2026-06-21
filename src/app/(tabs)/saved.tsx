@@ -95,6 +95,7 @@ export default function SavedLocationsScreen() {
               accessibilityLabel={`Open saved locations for ${country.name}`}
               imageUri={country.imageUri}
               isLoading={isLoading}
+              style={styles.countryRow}
               testID={`saved-country-row-${country.name}`}
               title={country.name}
               onPress={() => router.push({ pathname: '/saved/[country]', params: { country: country.name } })}
@@ -117,6 +118,9 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     borderRadius: 8,
+  },
+  countryRow: {
+    height: 153,
   },
   skeletonCountryContent: {
     gap: 1,
@@ -153,7 +157,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   skeletonCountryRow: {
-    height: 130,
+    height: 111,
     borderRadius: 0,
     justifyContent: 'center',
     paddingHorizontal: 16,

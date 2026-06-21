@@ -4,6 +4,7 @@ import { PaperProvider } from 'react-native-paper';
 import { StyleSheet } from 'react-native';
 
 import { AuthProvider } from '@/auth';
+import { PlacebookOpeningAnimation } from '@/components/placebook-opening-animation';
 import { paperTheme } from '@/constants/paper-theme';
 import { DatabaseProvider } from '@/db/database-provider';
 import { ServicesProvider, createAppServices } from '@/services/app-services';
@@ -46,6 +47,7 @@ export default function RootLayout() {
           </DatabaseProvider>
         </ServicesProvider>
       </PaperProvider>
+      <PlacebookOpeningAnimation />
     </GestureHandlerRootView>
   );
 }

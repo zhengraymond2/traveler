@@ -104,14 +104,14 @@ export function createLocationRepository(database: AppDatabase): LocationReposit
 }
 
 function createLocationReader(database: AppDatabase): LocationReader {
-  return {
+  const reader: LocationReader = {
     async listLocations() {
       return database.select().from(locations).orderBy(desc(locations.createdAt));
     },
 
     async listLocationsWithPhotos() {
-      const savedLocations = await this.listLocations();
-      return withPhotos(savedLocations, this.listPhotosForLocation);
+      const savedLocations = await reader.listLocations();
+      return withPhotos(savedLocations, reader.listPhotosForLocation);
     },
 
     async listLocationsByCountry(country) {
@@ -123,8 +123,8 @@ function createLocationReader(database: AppDatabase): LocationReader {
     },
 
     async listLocationsWithPhotosByCountry(country) {
-      const savedLocations = await this.listLocationsByCountry(country);
-      return withPhotos(savedLocations, this.listPhotosForLocation);
+      const savedLocations = await reader.listLocationsByCountry(country);
+      return withPhotos(savedLocations, reader.listPhotosForLocation);
     },
 
     async listLocationsWithoutCountry() {
@@ -136,8 +136,8 @@ function createLocationReader(database: AppDatabase): LocationReader {
     },
 
     async listLocationsWithoutCountryWithPhotos() {
-      const savedLocations = await this.listLocationsWithoutCountry();
-      return withPhotos(savedLocations, this.listPhotosForLocation);
+      const savedLocations = await reader.listLocationsWithoutCountry();
+      return withPhotos(savedLocations, reader.listPhotosForLocation);
     },
 
     async getLocation(id) {
@@ -146,7 +146,7 @@ function createLocationReader(database: AppDatabase): LocationReader {
         return null;
       }
 
-      const photos = await this.listPhotosForLocation(id);
+      const photos = await reader.listPhotosForLocation(id);
       return { ...location, photos };
     },
 
@@ -166,8 +166,8 @@ function createLocationReader(database: AppDatabase): LocationReader {
     },
 
     async listCollectionsWithLocations() {
-      const savedCollections = await this.listCollections();
-      return withCollectionLocations(savedCollections, this.getCollection);
+      const savedCollections = await reader.listCollections();
+      return withCollectionLocations(savedCollections, reader.getCollection);
     },
 
     async listCollectionsForLocation(locationId) {
@@ -195,12 +195,14 @@ function createLocationReader(database: AppDatabase): LocationReader {
         .orderBy(asc(locations.name), desc(locations.createdAt));
       const collectionLocationsWithPhotos = await withPhotos(
         memberships.map((membership) => membership.location),
-        this.listPhotosForLocation
+        reader.listPhotosForLocation
       );
 
       return { ...collection, locations: collectionLocationsWithPhotos };
     },
   };
+
+  return reader;
 }
 
 async function withPhotos(

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title>Placebook app icon concept 09 - location list</title>
+  <rect width="1024" height="1024" rx="224" fill="#FF385C"/>
+  <rect x="226" y="190" width="572" height="644" rx="76" fill="#FFFFFF"/>
+  <path d="M342 322h340M342 512h340M342 702h232" stroke="#FF385C" stroke-width="44" stroke-linecap="round"/>
+  <path d="M272 270c-45 0-82 37-82 82 0 56 82 142 82 142s82-86 82-142c0-45-37-82-82-82Z" fill="#FF385C"/>
+  <circle cx="272" cy="352" r="25" fill="#FFFFFF"/>
+  <path d="M690 602c-45 0-82 37-82 82 0 56 82 142 82 142s82-86 82-142c0-45-37-82-82-82Z" fill="#FF385C"/>
+  <circle cx="690" cy="684" r="25" fill="#FFFFFF"/>
+</svg>

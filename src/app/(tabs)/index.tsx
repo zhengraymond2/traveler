@@ -62,7 +62,7 @@ export default function MapScreen() {
             void mapRef.current?.moveToUserLocation();
           }}
         >
-          <View style={styles.locationGlyph}>
+          <View testID="current-location-glyph" style={styles.locationGlyph}>
             <View style={styles.locationGlyphRing} />
             <View style={[styles.locationGlyphLine, styles.locationGlyphTop]} />
             <View style={[styles.locationGlyphLine, styles.locationGlyphRight]} />
@@ -108,8 +108,8 @@ const styles = StyleSheet.create({
   },
   addButton: {
     position: 'absolute',
-    right: 20,
-    bottom: 84,
+    right: 10,
+    bottom: 90,
     width: 60,
     height: 60,
     alignItems: 'center',
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   },
   locationButton: {
     position: 'absolute',
-    top: MapControlLayout.locationTop,
+    top: MapControlLayout.navTop,
     right: MapControlLayout.right,
     width: MapControlLayout.size,
     height: MapControlLayout.size,
@@ -130,16 +130,16 @@ const styles = StyleSheet.create({
     boxShadow: `0 7px 18px ${AppColors.shadow}`,
   },
   locationGlyph: {
-    width: 25,
-    height: 25,
+    width: 30,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
   },
   locationGlyphRing: {
-    width: 14,
-    height: 14,
+    width: 17,
+    height: 17,
     borderWidth: 2,
-    borderRadius: 7,
+    borderRadius: 8.5,
     borderColor: AppColors.onPrimary,
   },
   locationGlyphLine: {
@@ -150,21 +150,21 @@ const styles = StyleSheet.create({
   locationGlyphTop: {
     top: 0,
     width: 2,
-    height: 6,
+    height: 7,
   },
   locationGlyphRight: {
     right: 0,
-    width: 6,
+    width: 7,
     height: 2,
   },
   locationGlyphBottom: {
     bottom: 0,
     width: 2,
-    height: 6,
+    height: 7,
   },
   locationGlyphLeft: {
     left: 0,
-    width: 6,
+    width: 7,
     height: 2,
   },
   addButtonText: {

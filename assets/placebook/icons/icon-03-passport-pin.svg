@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title>Placebook app icon concept 03 - passport pin</title>
+  <rect width="1024" height="1024" rx="224" fill="#FF385C"/>
+  <rect x="276" y="178" width="472" height="668" rx="72" fill="#FFFFFF"/>
+  <rect x="348" y="270" width="328" height="54" rx="27" fill="#FF385C"/>
+  <rect x="348" y="688" width="220" height="42" rx="21" fill="#FF385C"/>
+  <path d="M512 388c-76 0-138 62-138 138 0 94 138 238 138 238s138-144 138-238c0-76-62-138-138-138Z" fill="#FF385C"/>
+  <circle cx="512" cy="526" r="45" fill="#FFFFFF"/>
+  <path d="M374 608h276" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round" opacity=".66"/>
+</svg>

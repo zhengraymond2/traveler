@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title>Placebook app icon concept 05 - saved stack</title>
+  <rect width="1024" height="1024" rx="224" fill="#FF385C"/>
+  <rect x="286" y="252" width="452" height="490" rx="72" fill="#FFFFFF" opacity=".55"/>
+  <rect x="246" y="216" width="452" height="490" rx="72" fill="#FFFFFF" opacity=".78"/>
+  <rect x="326" y="180" width="452" height="490" rx="72" fill="#FFFFFF"/>
+  <path d="M604 180h104v248l-52-38-52 38V180Z" fill="#FF385C"/>
+  <path d="M490 338c-55 0-99 44-99 99 0 67 99 172 99 172s99-105 99-172c0-55-44-99-99-99Z" fill="#FF385C"/>
+  <circle cx="490" cy="437" r="30" fill="#FFFFFF"/>
+</svg>

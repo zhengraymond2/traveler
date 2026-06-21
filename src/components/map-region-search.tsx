@@ -147,7 +147,7 @@ export function MapRegionSearch({ onSelect, options }: MapRegionSearchProps) {
 const styles = StyleSheet.create({
   collapsedContainer: {
     position: 'absolute',
-    top: MapControlLayout.searchTop,
+    top: MapControlLayout.top,
     right: MapControlLayout.right,
   },
   searchButton: {
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   },
   expandedPanel: {
     position: 'absolute',
-    top: MapControlLayout.searchTop,
+    top: MapControlLayout.top,
     overflow: 'hidden',
     borderRadius: 18,
     backgroundColor: AppColors.surface,

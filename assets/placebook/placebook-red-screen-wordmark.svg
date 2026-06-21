@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" role="img" aria-labelledby="title">
+  <title>Placebook full red screen with white lettering</title>
+  <rect width="1080" height="1920" fill="#FF385C"/>
+  <g transform="translate(162 828)">
+    <path d="M64 0h168c102 0 174 68 174 163 0 96-72 166-174 166h-82v137H64V0Zm86 82v165h75c57 0 95-33 95-83 0-49-38-82-95-82h-75Z" fill="#FFFFFF" transform="scale(.45)"/>
+    <text x="92" y="174" fill="#FFFFFF" font-family="Avenir Next Rounded, Avenir Next, Nunito Sans, Inter, Arial Rounded MT Bold, sans-serif" font-size="148" font-weight="800" letter-spacing="0">Placebook</text>
+  </g>
+</svg>

@@ -67,6 +67,7 @@
   },
   "jest": {
     "preset": "jest-expo",
+    "resolver": "./node_modules/react-native-worklets/jest/resolver.js",
     "watchman": false,
     "setupFilesAfterEnv": [
       "<rootDir>/jest.setup.ts"

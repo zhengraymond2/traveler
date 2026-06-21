@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title>Placebook app icon concept 02 - folded map bookmark</title>
+  <rect width="1024" height="1024" rx="224" fill="#FF385C"/>
+  <path d="M204 276c0-26 16-50 41-58l159-54v584l-159 54c-20 7-41-8-41-29V276Z" fill="#FFFFFF" opacity=".78"/>
+  <path d="M404 164l218 84v584l-218-84V164Z" fill="#FFFFFF"/>
+  <path d="M622 248l157-53c20-7 41 8 41 29v497c0 26-16 50-41 58l-157 53V248Z" fill="#FFFFFF" opacity=".82"/>
+  <path d="M566 257h112v270l-56-44-56 44V257Z" fill="#FF385C"/>
+  <path d="M330 384l105 68 86-54 164 108" stroke="#FF385C" stroke-width="31" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

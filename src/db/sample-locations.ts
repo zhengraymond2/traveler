@@ -193,15 +193,12 @@ const japanDensityAnchors: JapanDensityAnchor[] = [
 
 const japanDensityOffsets = [
   { latitude: 0, longitude: 0 },
-  { latitude: 0.018, longitude: 0.022 },
-  { latitude: -0.016, longitude: 0.019 },
-  { latitude: 0.014, longitude: -0.024 },
-  { latitude: -0.021, longitude: -0.015 },
-  { latitude: 0.032, longitude: 0.004 },
-  { latitude: -0.029, longitude: 0.007 },
-  { latitude: 0.006, longitude: 0.036 },
-  { latitude: -0.004, longitude: -0.038 },
-  { latitude: 0.041, longitude: -0.031 },
+  { latitude: 0.072, longitude: 0.031 },
+  { latitude: -0.067, longitude: 0.052 },
+  { latitude: 0.041, longitude: -0.078 },
+  { latitude: -0.084, longitude: -0.046 },
+  { latitude: 0.018, longitude: 0.084 },
+  { latitude: -0.025, longitude: -0.087 },
 ];
 
 const japanDensitySampleLocations = createJapanDensitySampleLocations();

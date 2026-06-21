@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title>Placebook app icon concept 08 - page corner marker</title>
+  <rect width="1024" height="1024" rx="224" fill="#FF385C"/>
+  <path d="M300 172h296l160 160v426c0 52-42 94-94 94H300c-52 0-94-42-94-94V266c0-52 42-94 94-94Z" fill="#FFFFFF"/>
+  <path d="M596 172v118c0 24 20 44 44 44h116L596 172Z" fill="#FF385C"/>
+  <path d="M484 370c-79 0-143 64-143 143 0 98 143 250 143 250s143-152 143-250c0-79-64-143-143-143Z" fill="#FF385C"/>
+  <circle cx="484" cy="513" r="46" fill="#FFFFFF"/>
+  <path d="M338 288h170" stroke="#FF385C" stroke-width="34" stroke-linecap="round"/>
+</svg>
