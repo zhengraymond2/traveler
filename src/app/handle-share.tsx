@@ -1,14 +1,23 @@
 import { router, Stack } from 'expo-router';
-import { clearSharedPayloads, useIncomingShare } from 'expo-sharing';
 import * as React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Button, Text, useTheme } from 'react-native-paper';
 
-import { buildShareIntakeLog } from '@/features/share/share-intake';
+import { buildShareIntakeLog, loadExpoSharingModule, type ExpoSharingModule } from '@/features/share/share-intake';
+
+const expoSharing = loadExpoSharingModule();
 
 export default function HandleShareScreen() {
+  if (!expoSharing) {
+    return <MissingExpoSharingScreen />;
+  }
+
+  return <AvailableExpoSharingScreen sharing={expoSharing} />;
+}
+
+function AvailableExpoSharingScreen({ sharing }: { sharing: ExpoSharingModule }) {
   const theme = useTheme();
-  const { isResolving, resolvedSharedPayloads, sharedPayloads } = useIncomingShare();
+  const { isResolving, resolvedSharedPayloads, sharedPayloads } = sharing.useIncomingShare();
   const hasLoggedShareRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -18,9 +27,9 @@ export default function HandleShareScreen() {
 
     hasLoggedShareRef.current = true;
     console.log('Traveler received shared content', buildShareIntakeLog(sharedPayloads, resolvedSharedPayloads));
-    clearSharedPayloads();
+    sharing.clearSharedPayloads();
     router.replace('/(tabs)/saved');
-  }, [isResolving, resolvedSharedPayloads, sharedPayloads]);
+  }, [isResolving, resolvedSharedPayloads, sharedPayloads, sharing]);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
@@ -33,6 +42,25 @@ export default function HandleShareScreen() {
   );
 }
 
+function MissingExpoSharingScreen() {
+  const theme = useTheme();
+
+  return (
+    <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
+      <Stack.Screen options={{ title: 'Import shared content' }} />
+      <Text selectable variant="titleMedium" style={{ color: theme.colors.onSurface }}>
+        Sharing is not available in this build.
+      </Text>
+      <Text selectable variant="bodyMedium" style={[styles.fallbackText, { color: theme.colors.onSurfaceVariant }]}>
+        Rebuild the native app after installing expo-sharing to receive content from other apps.
+      </Text>
+      <Button mode="contained" onPress={() => router.replace('/(tabs)/saved')}>
+        Back to Saved
+      </Button>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -40,5 +68,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     padding: 24,
+  },
+  fallbackText: {
+    textAlign: 'center',
   },
 });

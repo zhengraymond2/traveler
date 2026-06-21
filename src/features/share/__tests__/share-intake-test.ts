@@ -1,4 +1,4 @@
-import { buildShareIntakeLog, classifySharedPayload } from '../share-intake';
+import { buildShareIntakeLog, classifySharedPayload, loadExpoSharingModule } from '../share-intake';
 
 describe('share intake helpers', () => {
   test('classifies Instagram links', () => {
@@ -82,5 +82,13 @@ describe('share intake helpers', () => {
       resolvedPayloads,
       source: 'expo-sharing',
     });
+  });
+
+  test('treats a missing ExpoSharing native module as unavailable instead of throwing', () => {
+    const module = loadExpoSharingModule(() => {
+      throw new Error("Cannot find native module 'ExpoSharing'");
+    });
+
+    expect(module).toBeNull();
   });
 });
