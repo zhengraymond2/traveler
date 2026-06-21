@@ -97,6 +97,7 @@ describe('AwsAuroraDataApiDatabase', () => {
     });
     expect(client.commands[0].input).toMatchObject({
       database: 'traveler_staging',
+      includeResultMetadata: true,
       resourceArn: config.resourceArn,
       secretArn: config.secretArn,
       sql: 'select * from locations where id = :id',

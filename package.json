@@ -48,6 +48,7 @@
   "devDependencies": {
     "@testing-library/react-native": "^14.0.0",
     "@types/jest": "^30.0.0",
+    "@types/node": "^26.0.0",
     "@types/react": "~19.2.2",
     "babel-plugin-inline-import": "^3.0.0",
     "drizzle-kit": "^0.31.10",
@@ -67,11 +68,13 @@
     "web": "expo start --web",
     "test": "jest",
     "test:watch": "jest --watch",
+    "api:dev": "tsx scripts/location-api-dev-server.ts",
     "lint": "expo lint",
     "db:generate": "drizzle-kit generate",
     "aws:aurora:smoke": "tsx scripts/aurora-location-smoke-test.ts",
     "aws:sqs:smoke": "tsx scripts/sqs-events-smoke-test.ts",
-    "aws:s3:smoke": "tsx scripts/s3-blob-smoke-test.ts"
+    "aws:s3:smoke": "tsx scripts/s3-blob-smoke-test.ts",
+    "api:smoke": "tsx scripts/location-api-smoke-test.ts"
   },
   "jest": {
     "preset": "jest-expo",

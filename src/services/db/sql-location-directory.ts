@@ -91,8 +91,8 @@ export class SqlLocationDirectory implements LocationDirectory {
           :trailMapUrl,
           :instagramFeedUrl,
           :fieldConfidenceJson,
-          :now,
-          :now
+          cast(:now as timestamptz),
+          cast(:now as timestamptz)
         )
         on conflict (id) do update set
           name = coalesce(excluded.name, locations.name),
