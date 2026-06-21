@@ -67,10 +67,10 @@ describe('MapScreen', () => {
     expect(locationButtonStyle).toMatchObject({
       position: 'absolute',
       right: 27,
-      top: 190,
-      width: 46,
-      height: 46,
-      borderRadius: 23,
+      top: 135,
+      width: 38,
+      height: 38,
+      borderRadius: 19,
     });
     expect(locationButtonStyle.bottom).toBeUndefined();
   });

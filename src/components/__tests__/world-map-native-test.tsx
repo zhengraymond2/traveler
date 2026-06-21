@@ -87,7 +87,7 @@ describe('WorldMap native controls', () => {
   test('places the compass below the search control on the right edge', () => {
     expect(mapCompassControlProps).toEqual({
       compassViewPosition: 1,
-      compassViewMargins: { x: 27, y: 132 },
+      compassPosition: { right: 27, top: 135 },
     });
   });
 });

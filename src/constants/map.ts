@@ -26,11 +26,3 @@ export const MapControlLayout = {
   size: 38,
   gap: 12,
 } as const;
-
-export const PhotoPinDensityStops = [
-  // { maxZoom: 2, sampleRatio: 1, pinBudget: 30 },
-  // { maxZoom: 4, sampleRatio: 1, pinBudget: 45 },
-  // { maxZoom: 6, sampleRatio: 1, pinBudget: 60 },
-  // { maxZoom: 8, sampleRatio: 1, pinBudget: 90 },
-  { maxZoom: Number.POSITIVE_INFINITY, sampleRatio: 1, pinBudget: 100 },
-] as const;

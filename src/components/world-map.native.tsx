@@ -9,16 +9,11 @@ import { Text } from 'react-native-paper';
 import Animated, { BounceIn, BounceOut, FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { getLocationCategoryAppearance } from '@/constants/location-categories';
-import { MapControlLayout, MapGestureSettings, MapTerrainStyle, MapTuning, PhotoPinDensityStops } from '@/constants/map';
+import { MapControlLayout, MapGestureSettings, MapTerrainStyle, MapTuning } from '@/constants/map';
 import { AppColors } from '@/constants/theme';
 import type { LocationWithPhotos } from '@/db/repository';
 
 const mapboxAccessToken = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
-const INITIAL_CAMERA_SNAPSHOT: MapCameraSnapshot = {
-  bounds: null,
-  zoom: 0,
-  zoomBucket: 0,
-};
 let hasCenteredOnStartupLocation = false;
 
 if (mapboxAccessToken) {
@@ -47,12 +42,6 @@ export type MapCoordinate = {
   longitude: number;
 };
 
-type MapCameraSnapshot = {
-  bounds: VisibleBounds | null;
-  zoom: number;
-  zoomBucket: number;
-};
-
 type VisibleBounds = {
   ne: CoordinatePair;
   sw: CoordinatePair;
@@ -66,18 +55,18 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
 ) {
   const cameraRef = React.useRef<Mapbox.Camera>(null);
   const userCoordinateRef = React.useRef<CoordinatePair | null>(null);
-  const cameraSamplingStateRef = React.useRef({
-    hasCommittedSnapshot: false,
+  const cameraBoundsStateRef = React.useRef({
+    hasCommittedBounds: false,
     hasMovedSinceCommit: true,
-    lastCommittedSnapshot: INITIAL_CAMERA_SNAPSHOT,
+    lastCommittedBounds: null as VisibleBounds | null,
   });
   const [hasLocationPermission, setHasLocationPermission] = React.useState(false);
-  const [cameraSnapshot, setCameraSnapshot] = React.useState<MapCameraSnapshot>(INITIAL_CAMERA_SNAPSHOT);
+  const [visibleBounds, setVisibleBounds] = React.useState<VisibleBounds | null>(null);
   const [selectedLocation, setSelectedLocation] = React.useState<CoordinateLocation | null>(null);
   const locationDotShape = React.useMemo(() => createLocationDotShape(locations), [locations]);
-  const sampledPinLocations = React.useMemo(
-    () => sampleImagePinLocations(locations, cameraSnapshot),
-    [cameraSnapshot, locations]
+  const visiblePhotoPinLocations = React.useMemo(
+    () => getVisiblePhotoPinLocations(locations, visibleBounds),
+    [locations, visibleBounds]
   );
   const locationsById = React.useMemo(() => {
     return new Map(locations.filter(hasCoordinates).map((location) => [location.id, location]));
@@ -183,30 +172,30 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
   );
 
   const handleCameraChanged = React.useCallback((state: MapState) => {
-    const nextSnapshot = createCameraSnapshot(state);
-    const samplingState = cameraSamplingStateRef.current;
+    const nextBounds = getVisibleBounds(state.properties.bounds);
+    const boundsState = cameraBoundsStateRef.current;
 
     if (
-      !samplingState.hasCommittedSnapshot ||
-      !areCameraSnapshotsEqual(samplingState.lastCommittedSnapshot, nextSnapshot)
+      !boundsState.hasCommittedBounds ||
+      !areVisibleBoundsEqual(boundsState.lastCommittedBounds, nextBounds)
     ) {
-      samplingState.hasMovedSinceCommit = true;
+      boundsState.hasMovedSinceCommit = true;
     }
   }, []);
 
   const handleMapIdle = React.useCallback((state: MapState) => {
-    const samplingState = cameraSamplingStateRef.current;
-    if (samplingState.hasCommittedSnapshot && !samplingState.hasMovedSinceCommit) {
+    const boundsState = cameraBoundsStateRef.current;
+    if (boundsState.hasCommittedBounds && !boundsState.hasMovedSinceCommit) {
       return;
     }
 
-    const nextSnapshot = createCameraSnapshot(state);
-    samplingState.hasCommittedSnapshot = true;
-    samplingState.hasMovedSinceCommit = false;
-    samplingState.lastCommittedSnapshot = nextSnapshot;
+    const nextBounds = getVisibleBounds(state.properties.bounds);
+    boundsState.hasCommittedBounds = true;
+    boundsState.hasMovedSinceCommit = false;
+    boundsState.lastCommittedBounds = nextBounds;
 
-    setCameraSnapshot((currentSnapshot) => {
-      return areCameraSnapshotsEqual(currentSnapshot, nextSnapshot) ? currentSnapshot : nextSnapshot;
+    setVisibleBounds((currentBounds) => {
+      return areVisibleBoundsEqual(currentBounds, nextBounds) ? currentBounds : nextBounds;
     });
   }, []);
 
@@ -287,7 +276,7 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
             <Mapbox.SymbolLayer id="saved-location-icon-layer" style={mapLayerStyles.locationIcon} />
           </Mapbox.ShapeSource>
         ) : null}
-        {sampledPinLocations.map((location) => (
+        {visiblePhotoPinLocations.map((location) => (
           <PhotoMarker key={location.id} location={location} onPress={handleLocationPress} />
         ))}
       </Mapbox.MapView>
@@ -448,49 +437,9 @@ function hasPhotoAndCoordinates(
   return hasCoordinates(location) && location.photos.length > 0;
 }
 
-function sampleImagePinLocations(locations: LocationWithPhotos[], cameraSnapshot: MapCameraSnapshot) {
+function getVisiblePhotoPinLocations(locations: LocationWithPhotos[], bounds: VisibleBounds | null) {
   const candidates = locations.filter(hasPhotoAndCoordinates);
-  const bounds = cameraSnapshot.bounds;
-  const visibleCandidates = bounds ? candidates.filter((location) => isLocationInBounds(location, bounds)) : candidates;
-  const pinCount = getPhotoPinCount(visibleCandidates.length, cameraSnapshot.zoomBucket);
-  const locationsByCountry = new Map<string, typeof candidates>();
-
-  for (const location of visibleCandidates) {
-    const country = location.country?.trim() || 'Unknown';
-    const countryLocations = locationsByCountry.get(country) ?? [];
-    countryLocations.push(location);
-    locationsByCountry.set(country, countryLocations);
-  }
-
-  const selectedLocations = Array.from(locationsByCountry.values())
-    .map((countryLocations) => countryLocations.sort(compareStableSampleOrder)[0])
-    .filter(Boolean)
-    .slice(0, pinCount);
-  const selectedIds = new Set(selectedLocations.map((location) => location.id));
-  const remainingLocations = visibleCandidates
-    .filter((location) => !selectedIds.has(location.id))
-    .sort(compareStableSampleOrder)
-    .slice(0, Math.max(0, pinCount - selectedLocations.length));
-
-  return [...selectedLocations, ...remainingLocations];
-}
-
-function getPhotoPinCount(candidateCount: number, zoom: number) {
-  if (candidateCount <= 0) {
-    return 0;
-  }
-
-  const densityStop = getPhotoPinDensityStop(zoom);
-
-  return Math.min(
-    candidateCount,
-    densityStop.pinBudget,
-    Math.max(1, Math.ceil(candidateCount * densityStop.sampleRatio))
-  );
-}
-
-function getPhotoPinDensityStop(zoom: number) {
-  return PhotoPinDensityStops.find((densityStop) => zoom < densityStop.maxZoom) ?? PhotoPinDensityStops[0];
+  return bounds ? candidates.filter((location) => isLocationInBounds(location, bounds)) : candidates;
 }
 
 function isLocationInBounds(location: CoordinateLocation, bounds: VisibleBounds) {
@@ -508,32 +457,6 @@ function isLocationInBounds(location: CoordinateLocation, bounds: VisibleBounds)
       : longitude >= westLongitude || longitude <= eastLongitude;
 
   return isWithinLatitude && isWithinLongitude;
-}
-
-function compareStableSampleOrder(first: LocationWithPhotos, second: LocationWithPhotos) {
-  return hashString(`${first.country ?? ''}-${first.name ?? first.id}`) - hashString(`${second.country ?? ''}-${second.name ?? second.id}`);
-}
-
-function hashString(value: string) {
-  return Array.from(value).reduce((hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0, 0);
-}
-
-function getFiniteZoom(zoom: number) {
-  return Number.isFinite(zoom) ? Math.max(0, zoom) : 0;
-}
-
-function createCameraSnapshot(state: MapState): MapCameraSnapshot {
-  const zoom = getFiniteZoom(state.properties.zoom);
-
-  return {
-    bounds: getVisibleBounds(state.properties.bounds),
-    zoom,
-    zoomBucket: getZoomSampleBucket(zoom),
-  };
-}
-
-function getZoomSampleBucket(zoom: number) {
-  return Math.floor(getFiniteZoom(zoom) * 2) / 2;
 }
 
 function getVisibleBounds(bounds: MapState['properties']['bounds']) {
@@ -561,10 +484,6 @@ function getCoordinatePair(position: GeoJSON.Position | undefined): CoordinatePa
   }
 
   return [longitude, latitude];
-}
-
-function areCameraSnapshotsEqual(first: MapCameraSnapshot, second: MapCameraSnapshot) {
-  return first.zoomBucket === second.zoomBucket && areVisibleBoundsEqual(first.bounds, second.bounds);
 }
 
 function areVisibleBoundsEqual(first: VisibleBounds | null, second: VisibleBounds | null) {
