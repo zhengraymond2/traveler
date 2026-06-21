@@ -25,7 +25,7 @@ export class LocalLocalLocationStore implements LocalLocationStore {
         sourcePhotoUris: mergeUnique(existing.sourcePhotoUris, input.partialLocation.sourcePhotoUris),
         sourceLinks: mergeUnique(existing.sourceLinks, collectSourceLinks(input.partialLocation)),
         sourceInstagramUrls: mergeUnique(existing.sourceInstagramUrls, input.partialLocation.instagramUrls),
-        privateDescription: input.source.privateDescription?.trim() || existing.privateDescription,
+        privateDescription: appendDescription(existing.privateDescription, input.source.privateDescription),
         lastPartialLocationId: input.partialLocation.id,
         updatedAt: now,
       };
@@ -118,4 +118,19 @@ function mergeUnique(current: string[], next: (string | undefined)[] | undefined
 function intersects(first: string[], second: string[] | undefined) {
   const firstValues = new Set(first);
   return Boolean(second?.some((value) => firstValues.has(value.trim())));
+}
+
+function appendDescription(current: string | null, next: string | null | undefined) {
+  const normalizedNext = next?.trim();
+  if (!normalizedNext) {
+    return current;
+  }
+  if (!current) {
+    return normalizedNext;
+  }
+  if (current.split('\n\n').includes(normalizedNext)) {
+    return current;
+  }
+
+  return `${current}\n\n${normalizedNext}`;
 }
