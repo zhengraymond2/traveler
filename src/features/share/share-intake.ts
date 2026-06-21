@@ -1,3 +1,5 @@
+import type { AddSourceInput } from '@/services/contracts';
+
 export type SharedPayloadClassification = 'instagram' | 'google-maps' | 'text' | 'image' | 'file' | 'unknown';
 
 export type SharePayloadLike = {
@@ -89,4 +91,34 @@ export function loadExpoSharingModule(
 function isMissingExpoSharingNativeModule(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   return message.includes("Cannot find native module 'ExpoSharing'") || message.includes('Cannot find native module ExpoSharing');
+}
+
+export function buildAddSourceInputsFromSharedPayloads(payloads: SharePayloadLike[]): AddSourceInput[] {
+  return payloads
+    .map((payload) => buildAddSourceInputFromSharedPayload(payload))
+    .filter((input): input is AddSourceInput => input !== null);
+}
+
+function buildAddSourceInputFromSharedPayload(payload: SharePayloadLike): AddSourceInput | null {
+  const value = getPayloadValue(payload);
+  if (!value) {
+    return null;
+  }
+
+  switch (classifySharedPayload(payload)) {
+    case 'instagram':
+      return { instagramUrls: [value] };
+    case 'google-maps':
+      return { googleMapsUrl: value };
+    case 'image':
+      return { sourcePhotoUris: [value] };
+    case 'text':
+      return { textCaption: value };
+    default:
+      return null;
+  }
+}
+
+function getPayloadValue(payload: SharePayloadLike) {
+  return payload.value?.trim() || payload.contentUri?.trim() || null;
 }

@@ -3,17 +3,21 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import * as React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Divider, Surface, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Dialog, Divider, Portal, Surface, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { CountryRegionDropdown } from '@/components/country-region-dropdown';
 import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
 import type { Location } from '@/db/schema';
-import { mergePhotos, parseCoordinates, toSelectedPhoto, type SelectedPhoto } from '@/features/locations/add-source-helpers';
+import type { AddSourceResult } from '@/services/contracts';
+import { useServices } from '@/services/app-services';
+import { AddSourceFeedback } from '@/features/locations/add-source-feedback';
+import { createAddSourceInput, mergePhotos, toSelectedPhoto, type SelectedPhoto } from '@/features/locations/add-source-helpers';
 
 export default function AddSourceScreen() {
   const theme = useTheme();
-  const { reader, writer } = useDatabase();
+  const { reader } = useDatabase();
+  const { locationIntakeService } = useServices();
   const [locationName, setLocationName] = React.useState('');
   const [country, setCountry] = React.useState('');
   const [savedRegions, setSavedRegions] = React.useState<Location[]>([]);
@@ -25,6 +29,7 @@ export default function AddSourceScreen() {
   const [notes, setNotes] = React.useState('');
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [successResult, setSuccessResult] = React.useState<AddSourceResult | null>(null);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -56,21 +61,19 @@ export default function AddSourceScreen() {
     setErrorMessage(null);
 
     try {
-      const coordinates = parseCoordinates(gpsCoordinates);
+      const result = await locationIntakeService.addSource(
+        createAddSourceInput({
+          googleMapsUrl,
+          gpsCoordinates,
+          instagramUrl,
+          locationName,
+          notes,
+          photos,
+          trailMapUrl,
+        })
+      );
 
-      await writer.createLocation({
-        name: locationName,
-        country,
-        latitude: coordinates?.latitude,
-        longitude: coordinates?.longitude,
-        googleMapsUrl,
-        instagramUrl,
-        trailMapUrl,
-        notes,
-        photos: photos.map((photo) => ({ uri: photo.uri })),
-      });
-
-      router.back();
+      setSuccessResult(result);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to save source.');
     } finally {
@@ -254,8 +257,27 @@ export default function AddSourceScreen() {
           </View>
         </Surface>
       </ScrollView>
+
+      <Portal>
+        <Dialog visible={Boolean(successResult)} onDismiss={handleDismissSuccess}>
+          <Dialog.Title>Source added</Dialog.Title>
+          <Dialog.Content>
+            {successResult ? <AddSourceFeedback result={successResult} /> : null}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button testID="add-source-success-done" onPress={handleDismissSuccess}>
+              Done
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </>
   );
+
+  function handleDismissSuccess() {
+    setSuccessResult(null);
+    router.back();
+  }
 }
 
 const styles = StyleSheet.create({

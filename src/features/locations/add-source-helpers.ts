@@ -1,8 +1,20 @@
 import type * as ImagePicker from 'expo-image-picker';
 
+import type { AddSourceInput } from '@/services/contracts';
+
 export type SelectedPhoto = {
   fileName?: string | null;
   uri: string;
+};
+
+export type CreateAddSourceInputParams = {
+  googleMapsUrl: string;
+  gpsCoordinates: string;
+  instagramUrl: string;
+  locationName: string;
+  notes: string;
+  photos: SelectedPhoto[];
+  trailMapUrl: string;
 };
 
 export function parseCoordinates(value: string) {
@@ -40,4 +52,44 @@ export function mergePhotos(currentPhotos: SelectedPhoto[], newPhotos: SelectedP
   });
 
   return [...currentPhotos, ...uniqueNewPhotos];
+}
+
+export function createAddSourceInput(params: CreateAddSourceInputParams): AddSourceInput {
+  const coordinates = parseCoordinates(params.gpsCoordinates);
+  const input: AddSourceInput = {};
+  const name = normalizeText(params.locationName);
+  const googleMapsUrl = normalizeText(params.googleMapsUrl);
+  const instagramUrl = normalizeText(params.instagramUrl);
+  const allTrailsUrl = normalizeText(params.trailMapUrl);
+  const privateDescription = normalizeText(params.notes);
+  const sourcePhotoUris = params.photos.map((photo) => photo.uri).filter(Boolean);
+
+  if (name) {
+    input.name = name;
+  }
+  if (sourcePhotoUris.length) {
+    input.sourcePhotoUris = sourcePhotoUris;
+  }
+  if (instagramUrl) {
+    input.instagramUrls = [instagramUrl];
+  }
+  if (googleMapsUrl) {
+    input.googleMapsUrl = googleMapsUrl;
+  }
+  if (coordinates) {
+    input.gpsCoordinates = coordinates;
+  }
+  if (allTrailsUrl) {
+    input.allTrailsUrl = allTrailsUrl;
+  }
+  if (privateDescription) {
+    input.privateDescription = privateDescription;
+  }
+
+  return input;
+}
+
+function normalizeText(value: string) {
+  const normalized = value.trim();
+  return normalized || undefined;
 }

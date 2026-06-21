@@ -1,0 +1,51 @@
+import type { AddSourceInput, AddSourceResult, PartialLocation } from '@/services/contracts';
+import type { LocationIntakeService } from '@/services/location-intake';
+
+type FetchLike = (input: string, init?: RequestInit) => Promise<Pick<Response, 'json' | 'ok' | 'status'>>;
+
+export type LocationApiClientOptions = {
+  baseUrl: string;
+  fetchImpl?: FetchLike;
+};
+
+export class LocationApiClient {
+  private readonly baseUrl: string;
+  private readonly fetchImpl: FetchLike;
+
+  constructor(options: LocationApiClientOptions) {
+    this.baseUrl = options.baseUrl.replace(/\/$/, '');
+    this.fetchImpl = options.fetchImpl ?? fetch;
+  }
+
+  async addSource(input: AddSourceInput): Promise<AddSourceResult> {
+    return this.post('/sources', input);
+  }
+
+  async enqueuePartialLocation(event: PartialLocation): Promise<void> {
+    await this.post('/partial-locations', event);
+  }
+
+  private async post<ResponseBody>(path: string, body: unknown): Promise<ResponseBody> {
+    const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+      body: JSON.stringify(body),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Location API request failed with HTTP ${response.status}.`);
+    }
+
+    return response.json() as Promise<ResponseBody>;
+  }
+}
+
+export function createRemoteLocationIntakeService(client: LocationApiClient): LocationIntakeService {
+  return {
+    addSource(input) {
+      return client.addSource(input);
+    },
+  };
+}

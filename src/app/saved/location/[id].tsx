@@ -5,6 +5,7 @@ import * as React from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Button, Card, Dialog, Menu, Portal, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
 
+import { InstagramFeedPanel } from '@/components/instagram-feed-panel';
 import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
 import type { LocationWithPhotos } from '@/db/repository';
@@ -225,24 +226,34 @@ export default function SavedLocationDetailScreen() {
               </>
             )}
 
-            {location.photos.length ? (
-              <View style={[styles.gallery, { gap: galleryGap }]}>
-                {location.photos.map((photo) => (
-                  <Image
-                    key={photo.id}
-                    source={{ uri: photo.uri }}
-                    style={[
-                      styles.galleryImage,
-                      {
-                        width: galleryItemSize,
-                        height: galleryItemSize,
-                      },
-                    ]}
-                    contentFit="cover"
-                  />
-                ))}
+            {location.instagramUrl || location.photos.length ? (
+              <View style={styles.sourceSection}>
+                <Text selectable variant="titleMedium" style={styles.sectionTitle}>
+                  Source
+                </Text>
+                {location.instagramUrl ? <DetailLink label="Source Instagram" url={location.instagramUrl} /> : null}
+                {location.photos.length ? (
+                  <View style={[styles.gallery, { gap: galleryGap }]}>
+                    {location.photos.map((photo) => (
+                      <Image
+                        key={photo.id}
+                        source={{ uri: photo.uri }}
+                        style={[
+                          styles.galleryImage,
+                          {
+                            width: galleryItemSize,
+                            height: galleryItemSize,
+                          },
+                        ]}
+                        contentFit="cover"
+                      />
+                    ))}
+                  </View>
+                ) : null}
               </View>
             ) : null}
+
+            <InstagramFeedPanel feedUrl={location.instagramFeedUrl} />
           </View>
         ) : null}
       </ScrollView>
@@ -631,6 +642,13 @@ const styles = StyleSheet.create({
   notes: {
     color: AppColors.bodyText,
     lineHeight: 18,
+  },
+  sectionTitle: {
+    color: AppColors.text,
+    fontWeight: '800',
+  },
+  sourceSection: {
+    gap: 12,
   },
   editForm: {
     gap: 14,

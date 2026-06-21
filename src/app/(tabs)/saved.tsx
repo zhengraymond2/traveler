@@ -8,6 +8,7 @@ import { PulsingView } from '@/components/pulsing-view';
 import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
 import type { LocationWithPhotos } from '@/db/repository';
+import { getRecentlyAddedLocations, isProcessingLocation } from '@/features/locations/recently-added';
 import { getCountryRows } from '@/features/locations/saved-country-rows';
 
 export default function SavedLocationsScreen() {
@@ -50,6 +51,7 @@ export default function SavedLocationsScreen() {
   );
 
   const countries = React.useMemo(() => getCountryRows(locations), [locations]);
+  const recentlyAdded = React.useMemo(() => getRecentlyAddedLocations(new Date(), locations), [locations]);
 
   return (
     <ScrollView
@@ -74,6 +76,17 @@ export default function SavedLocationsScreen() {
       ) : null}
 
       {isLoading && countries.length === 0 ? <LoadingCountryRows /> : null}
+
+      {recentlyAdded.length ? (
+        <View style={styles.recentSection}>
+          <Text selectable variant="titleMedium" style={styles.sectionTitle}>
+            Recently added
+          </Text>
+          {recentlyAdded.map((location) => (
+            <RecentLocationRow key={location.id} location={location} isLoading={isLoading} />
+          ))}
+        </View>
+      ) : null}
 
       {countries.map((country) => (
         <React.Fragment key={country.name}>
@@ -108,6 +121,37 @@ const styles = StyleSheet.create({
   skeletonCountryContent: {
     gap: 1,
   },
+  recentSection: {
+    gap: 1,
+  },
+  recentLocationRow: {
+    height: 96,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    padding: 16,
+    backgroundColor: AppColors.surfaceVariant,
+  },
+  recentLocationTitle: {
+    color: AppColors.textInverse,
+    fontWeight: '800',
+    textShadowColor: AppColors.textShadow,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+  recentProcessing: {
+    color: AppColors.textInverse,
+    fontWeight: '700',
+    textShadowColor: AppColors.textShadow,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+  sectionTitle: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 6,
+    color: AppColors.text,
+    fontWeight: '800',
+  },
   skeletonCountryRow: {
     height: 130,
     borderRadius: 0,
@@ -122,6 +166,21 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.surface,
   },
 });
+
+function RecentLocationRow({ isLoading, location }: { isLoading: boolean; location: LocationWithPhotos }) {
+  const imageUri = location.photos[0]?.uri;
+  const title = `${isProcessingLocation(location) ? 'Processing · ' : ''}${location.name || 'Untitled location'}`;
+
+  return (
+    <ImageListRow
+      accessibilityLabel={`Open recently added ${location.name || 'Untitled location'}`}
+      imageUri={imageUri}
+      isLoading={isLoading}
+      title={title}
+      onPress={() => router.push({ pathname: '/saved/location/[id]', params: { id: location.id } })}
+    />
+  );
+}
 
 function LoadingCountryRows() {
   return (

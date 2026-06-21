@@ -3,7 +3,13 @@ import * as React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Button, Text, useTheme } from 'react-native-paper';
 
-import { buildShareIntakeLog, loadExpoSharingModule, type ExpoSharingModule } from '@/features/share/share-intake';
+import { useServices } from '@/services/app-services';
+import {
+  buildAddSourceInputsFromSharedPayloads,
+  buildShareIntakeLog,
+  loadExpoSharingModule,
+  type ExpoSharingModule,
+} from '@/features/share/share-intake';
 
 const expoSharing = loadExpoSharingModule();
 
@@ -18,7 +24,24 @@ export default function HandleShareScreen() {
 function AvailableExpoSharingScreen({ sharing }: { sharing: ExpoSharingModule }) {
   const theme = useTheme();
   const { isResolving, resolvedSharedPayloads, sharedPayloads } = sharing.useIncomingShare();
+  const { locationIntakeService } = useServices();
   const hasLoggedShareRef = React.useRef(false);
+
+  const processSharedPayloads = React.useCallback(async () => {
+    const log = buildShareIntakeLog(sharedPayloads, resolvedSharedPayloads);
+    const payloadsToProcess = resolvedSharedPayloads.length ? resolvedSharedPayloads : sharedPayloads;
+    const addSourceInputs = buildAddSourceInputsFromSharedPayloads(payloadsToProcess);
+
+    try {
+      const results = await Promise.all(addSourceInputs.map((input) => locationIntakeService.addSource(input)));
+      console.log('Traveler received shared content', { ...log, results });
+    } catch (error) {
+      console.error('Traveler failed to process shared content', error);
+    } finally {
+      sharing.clearSharedPayloads();
+      router.replace('/(tabs)/saved');
+    }
+  }, [locationIntakeService, resolvedSharedPayloads, sharedPayloads, sharing]);
 
   React.useEffect(() => {
     if (isResolving || hasLoggedShareRef.current) {
@@ -26,10 +49,8 @@ function AvailableExpoSharingScreen({ sharing }: { sharing: ExpoSharingModule })
     }
 
     hasLoggedShareRef.current = true;
-    console.log('Traveler received shared content', buildShareIntakeLog(sharedPayloads, resolvedSharedPayloads));
-    sharing.clearSharedPayloads();
-    router.replace('/(tabs)/saved');
-  }, [isResolving, resolvedSharedPayloads, sharedPayloads, sharing]);
+    void processSharedPayloads();
+  }, [isResolving, processSharedPayloads]);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
