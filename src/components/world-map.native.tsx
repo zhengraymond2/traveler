@@ -35,7 +35,7 @@ type WorldMapProps = {
 };
 
 export type WorldMapHandle = {
-  moveToCountryCoordinate: (coordinate: MapCoordinate) => boolean;
+  moveToSearchResult: (coordinate: MapCoordinate, zoomLevel?: number) => boolean;
   moveToUserLocation: () => Promise<boolean>;
 };
 
@@ -83,14 +83,14 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
     return selectedLocation && locationsById.has(selectedLocation.id) ? selectedLocation : null;
   }, [locationsById, selectedLocation]);
 
-  const flyToCountryLevel = React.useCallback((coordinate: CoordinatePair | null) => {
+  const flyToMapCoordinate = React.useCallback((coordinate: CoordinatePair | null, zoomLevel: number = MapTuning.countryViewZoomLevel) => {
     if (!coordinate) {
       return false;
     }
 
     cameraRef.current?.setCamera({
       centerCoordinate: coordinate,
-      zoomLevel: MapTuning.countryViewZoomLevel,
+      zoomLevel,
       animationDuration: MapTuning.cameraAnimationDurationMs,
       animationMode: 'flyTo',
     });
@@ -136,7 +136,7 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
       }
 
       hasCenteredOnStartupLocation = true;
-      flyToCountryLevel(coordinate);
+      flyToMapCoordinate(coordinate);
     }
 
     void centerOnStartupLocation();
@@ -144,27 +144,27 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
     return () => {
       isActive = false;
     };
-  }, [flyToCountryLevel, requestCurrentUserCoordinate]);
+  }, [flyToMapCoordinate, requestCurrentUserCoordinate]);
 
   React.useImperativeHandle(
     ref,
     () => ({
-      moveToCountryCoordinate: (coordinate) => {
-        return flyToCountryLevel([coordinate.longitude, coordinate.latitude]);
+      moveToSearchResult: (coordinate, zoomLevel) => {
+        return flyToMapCoordinate([coordinate.longitude, coordinate.latitude], zoomLevel);
       },
       moveToUserLocation: async () => {
         const coordinate = await requestCurrentUserCoordinate();
 
-        return flyToCountryLevel(coordinate) || flyToCountryLevel(userCoordinateRef.current);
+        return flyToMapCoordinate(coordinate) || flyToMapCoordinate(userCoordinateRef.current);
       },
     }),
-    [flyToCountryLevel, requestCurrentUserCoordinate]
+    [flyToMapCoordinate, requestCurrentUserCoordinate]
   );
 
   const handleLocationPress = React.useCallback((location: CoordinateLocation) => {
     setSelectedLocation(location);
-    flyToCountryLevel([location.longitude, location.latitude]);
-  }, [flyToCountryLevel]);
+    flyToMapCoordinate([location.longitude, location.latitude]);
+  }, [flyToMapCoordinate]);
 
   const handleDotPress = React.useCallback(
     (event: { features: GeoJSON.Feature[] }) => {
@@ -222,8 +222,8 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
     }
 
     hasCenteredOnStartupLocation = true;
-    flyToCountryLevel(coordinate);
-  }, [flyToCountryLevel]);
+    flyToMapCoordinate(coordinate);
+  }, [flyToMapCoordinate]);
 
   if (!mapboxAccessToken) {
     return (

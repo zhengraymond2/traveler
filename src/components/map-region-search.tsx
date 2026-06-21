@@ -65,7 +65,7 @@ export function MapRegionSearch({ onSelect, options }: MapRegionSearchProps) {
         layout={LinearTransition.springify()}
         style={styles.collapsedContainer}>
         <Pressable
-          accessibilityLabel="Search saved countries and regions"
+          accessibilityLabel="Search saved countries, regions, and locations"
           accessibilityRole="button"
           hitSlop={12}
           style={({ pressed }) => [styles.searchButton, { opacity: pressed ? 0.82 : 1 }]}
@@ -88,7 +88,7 @@ export function MapRegionSearch({ onSelect, options }: MapRegionSearchProps) {
           ref={inputRef}
           autoCapitalize="words"
           autoCorrect={false}
-          placeholder="Search saved countries or regions"
+          placeholder="Search countries, regions, or locations"
           placeholderTextColor={AppColors.textTertiary}
           returnKeyType="search"
           style={styles.input}
@@ -136,7 +136,7 @@ export function MapRegionSearch({ onSelect, options }: MapRegionSearchProps) {
       ) : (
         <Animated.View entering={FadeIn.duration(120)} exiting={FadeOut.duration(90)} style={styles.emptyResults}>
           <Text selectable={false} variant="bodyMedium" style={styles.resultDetail}>
-            No saved regions match
+            No saved places match
           </Text>
         </Animated.View>
       )}

@@ -1,5 +1,6 @@
 import countries from 'world-countries';
 
+import { MapTuning } from '@/constants/map';
 import type { LocationWithPhotos } from '@/db/repository';
 
 export type MapRegionSearchCoordinate = {
@@ -11,8 +12,9 @@ export type MapRegionSearchOption = {
   center: MapRegionSearchCoordinate | null;
   detail?: string;
   label: string;
-  source: 'country' | 'custom' | 'unknown';
+  source: 'country' | 'custom' | 'location' | 'unknown';
   value: string;
+  zoomLevel: number;
 };
 
 const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
@@ -29,6 +31,7 @@ const worldCountriesByKey = new Map(
       label: country.name.common,
       source: 'country' as const,
       value: country.name.common,
+      zoomLevel: MapTuning.countryViewZoomLevel,
     },
   ])
 );
@@ -44,7 +47,7 @@ export function buildMapRegionSearchOptions(locations: LocationWithPhotos[]) {
     regions.set(regionKey, regionLocations);
   }
 
-  return Array.from(regions.entries())
+  const regionOptions = Array.from(regions.entries())
     .map(([regionKey, regionLocations]) => {
       const firstRegionName = regionLocations[0]?.country?.trim() || 'Unknown';
       const countryOption = worldCountriesByKey.get(regionKey);
@@ -62,9 +65,15 @@ export function buildMapRegionSearchOptions(locations: LocationWithPhotos[]) {
         label: firstRegionName,
         source: isUnknown ? 'unknown' : 'custom',
         value: firstRegionName,
+        zoomLevel: MapTuning.countryViewZoomLevel,
       } satisfies MapRegionSearchOption;
-    })
-    .sort((first, second) => collator.compare(first.label, second.label));
+    });
+
+  const locationOptions = locations
+    .map((location) => createLocationSearchOption(location))
+    .filter((option): option is MapRegionSearchOption => option !== null);
+
+  return [...regionOptions, ...locationOptions].sort((first, second) => collator.compare(first.label, second.label));
 }
 
 export function filterMapRegionSearchOptions(options: MapRegionSearchOption[], query: string) {
@@ -74,7 +83,17 @@ export function filterMapRegionSearchOptions(options: MapRegionSearchOption[], q
     return options;
   }
 
-  return options.filter((option) => normalizeSearchKey(`${option.label} ${option.detail ?? ''}`).includes(normalizedQuery));
+  return options
+    .filter((option) => itemMatchesSearch(option, normalizedQuery))
+    .sort((first, second) => {
+      const rankComparison = getSearchRank(first, normalizedQuery) - getSearchRank(second, normalizedQuery);
+
+      if (rankComparison !== 0) {
+        return rankComparison;
+      }
+
+      return collator.compare(first.label, second.label);
+    });
 }
 
 export function normalizeSearchKey(value: string) {
@@ -106,4 +125,56 @@ function getAverageCoordinate(locations: LocationWithPhotos[]) {
     latitude: coordinateSum.latitude / coordinateLocations.length,
     longitude: coordinateSum.longitude / coordinateLocations.length,
   };
+}
+
+function createLocationSearchOption(location: LocationWithPhotos): MapRegionSearchOption | null {
+  const label = location.name?.trim();
+
+  if (!label) {
+    return null;
+  }
+
+  const country = location.country?.trim();
+
+  return {
+    center:
+      Number.isFinite(location.latitude) && Number.isFinite(location.longitude)
+        ? {
+            latitude: location.latitude ?? 0,
+            longitude: location.longitude ?? 0,
+          }
+        : null,
+    detail: [country, 'Saved location'].filter(Boolean).join(' · '),
+    label,
+    source: 'location',
+    value: location.id,
+    zoomLevel: MapTuning.locationSearchZoomLevel,
+  } satisfies MapRegionSearchOption;
+}
+
+function itemMatchesSearch(option: MapRegionSearchOption, normalizedQuery: string) {
+  return normalizeSearchKey(`${option.label} ${option.detail ?? ''}`).includes(normalizedQuery);
+}
+
+function getSearchRank(option: MapRegionSearchOption, normalizedQuery: string) {
+  const label = normalizeSearchKey(option.label);
+  const detail = normalizeSearchKey(option.detail ?? '');
+
+  if (label === normalizedQuery) {
+    return 0;
+  }
+
+  if (label.startsWith(normalizedQuery)) {
+    return 1;
+  }
+
+  if (label.includes(normalizedQuery)) {
+    return 2;
+  }
+
+  if (detail.includes(normalizedQuery)) {
+    return 3;
+  }
+
+  return 4;
 }
