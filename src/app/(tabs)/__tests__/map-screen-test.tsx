@@ -10,6 +10,16 @@ const mockMoveToCountryCoordinate = jest.fn();
 const mockMoveToSearchResult = jest.fn();
 const mockMoveToUserLocation = jest.fn();
 
+jest.mock('@/auth', () => ({
+  useAuth: () => ({
+    user: {
+      displayName: 'Raymond Z',
+      email: 'zhray@example.com',
+      initials: 'RZ',
+    },
+  }),
+}));
+
 jest.mock('expo-router', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react');

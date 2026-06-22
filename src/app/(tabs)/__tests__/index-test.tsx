@@ -1,3 +1,4 @@
+import { fireEvent } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
 import MapScreen from '../index';
@@ -110,7 +111,7 @@ describe('MapScreen', () => {
       borderRadius: 22,
     });
 
-    profileButton.props.onPress();
+    fireEvent.press(profileButton);
 
     expect(mockRouterPush).toHaveBeenCalledWith('/profile');
   });
