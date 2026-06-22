@@ -35,6 +35,13 @@ export type CreateTripInput = {
   title: string;
 };
 
+export type DuplicateTripInput = {
+  id: string;
+  kind?: TripKind;
+  sourceTripId?: string | null;
+  title: string;
+};
+
 export type InsertTripDayEventInput = {
   description?: string | null;
   index?: number;
@@ -74,6 +81,7 @@ export interface TripWriter {
   createDetailEvent(input: CreateTripDetailEventInput): Promise<TripDetailEvent>;
   createTrip(input: CreateTripInput): Promise<Trip>;
   deleteTrip(id: string): Promise<void>;
+  duplicateTrip(input: DuplicateTripInput): Promise<Trip>;
   insertDayEvent(input: InsertTripDayEventInput): Promise<TripDayEvent>;
   renameTrip(id: string, title: string): Promise<Trip | null>;
   updateTripStartDate(id: string, startDate: Date | string | null): Promise<Trip | null>;
@@ -161,6 +169,72 @@ function createTripWriter(database: AppDatabase): TripWriter {
 
     async deleteTrip(id) {
       await database.delete(trips).where(eq(trips.id, id));
+    },
+
+    async duplicateTrip(input) {
+      const sourceTrip = await createTripReader(database).getTrip(input.id);
+      if (!sourceTrip) {
+        throw new Error('Trip not found.');
+      }
+
+      const now = new Date();
+      const duplicatedTrip: NewTrip = {
+        coverPhotoUri: sourceTrip.coverPhotoUri,
+        createdAt: now,
+        id: createLocalId(),
+        kind: input.kind ?? sourceTrip.kind,
+        sourceTripId: input.sourceTripId ?? sourceTrip.id,
+        startDate: sourceTrip.startDate,
+        syncStatus: 'local',
+        title: normalizeRequiredText(input.title, 'Trip name is required.'),
+        updatedAt: now,
+      };
+
+      await database.insert(trips).values(duplicatedTrip);
+
+      for (const dayEvent of sourceTrip.dayEvents) {
+        const duplicatedDayEvent: NewTripDayEvent = {
+          createdAt: now,
+          description: dayEvent.description,
+          id: createLocalId(),
+          photoUri: dayEvent.photoUri,
+          position: dayEvent.position,
+          title: dayEvent.title,
+          tripId: duplicatedTrip.id,
+          updatedAt: now,
+        };
+        await database.insert(tripDayEvents).values(duplicatedDayEvent);
+
+        for (const detailEvent of dayEvent.detailEvents) {
+          const duplicatedDetailEvent: NewTripDetailEvent = {
+            addressText: detailEvent.addressText,
+            category: detailEvent.category,
+            createdAt: now,
+            dayEventId: duplicatedDayEvent.id,
+            description: detailEvent.description,
+            endMinute: detailEvent.endMinute,
+            googleMapsUrl: detailEvent.googleMapsUrl,
+            id: createLocalId(),
+            locationId: detailEvent.locationId,
+            startMinute: detailEvent.startMinute,
+            title: detailEvent.title,
+            updatedAt: now,
+          };
+          await database.insert(tripDetailEvents).values(duplicatedDetailEvent);
+
+          for (const photo of detailEvent.photos) {
+            await database.insert(tripDetailEventPhotos).values({
+              caption: photo.caption,
+              createdAt: now,
+              detailEventId: duplicatedDetailEvent.id,
+              id: createLocalId(),
+              uri: photo.uri,
+            });
+          }
+        }
+      }
+
+      return selectTrip(database, duplicatedTrip.id);
     },
 
     async insertDayEvent(input) {

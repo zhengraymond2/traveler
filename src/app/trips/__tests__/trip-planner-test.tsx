@@ -10,7 +10,9 @@ const mockInsertDayEvent = jest.fn();
 const mockCreateDetailEvent = jest.fn();
 const mockAddDetailEventPhoto = jest.fn();
 const mockUpdateTripStartDate = jest.fn();
+const mockDuplicateTrip = jest.fn();
 const mockListLocationsWithPhotos = jest.fn();
+const mockRouterPush = jest.fn();
 const mockRouterReplace = jest.fn();
 let mockFocusEffect: (() => void | (() => void)) | null = null;
 
@@ -69,6 +71,7 @@ jest.mock('@/db/database-provider', () => ({
     tripsWriter: {
       addDetailEventPhoto: (...args: unknown[]) => mockAddDetailEventPhoto(...args),
       createDetailEvent: (...args: unknown[]) => mockCreateDetailEvent(...args),
+      duplicateTrip: (...args: unknown[]) => mockDuplicateTrip(...args),
       insertDayEvent: (...args: unknown[]) => mockInsertDayEvent(...args),
       updateTripStartDate: (...args: unknown[]) => mockUpdateTripStartDate(...args),
     },
@@ -77,6 +80,7 @@ jest.mock('@/db/database-provider', () => ({
 
 jest.mock('expo-router', () => ({
   router: {
+    push: (...args: unknown[]) => mockRouterPush(...args),
     replace: (...args: unknown[]) => mockRouterReplace(...args),
   },
   Stack: {
@@ -99,6 +103,7 @@ describe('TripPlannerScreen', () => {
     mockCreateDetailEvent.mockResolvedValue({ id: 'detail-created' });
     mockAddDetailEventPhoto.mockResolvedValue(undefined);
     mockUpdateTripStartDate.mockResolvedValue(undefined);
+    mockDuplicateTrip.mockResolvedValue({ id: 'trip-copy' });
   });
 
   afterEach(() => {
@@ -205,6 +210,30 @@ describe('TripPlannerScreen', () => {
     await waitFor(() => {
       expect(mockUpdateTripStartDate).toHaveBeenCalledWith('trip-1', '2026-06-24');
     });
+  });
+
+  test('duplicates the trip from the header menu', async () => {
+    const screen = await UITestHelper.renderWithPaper(<TripPlannerScreen />);
+
+    await act(async () => {
+      mockFocusEffect?.();
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Kyoto')).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByText('...'));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByText('Duplicate Trip'));
+    });
+
+    await waitFor(() => {
+      expect(mockDuplicateTrip).toHaveBeenCalledWith({ id: 'trip-1', title: 'Kyoto Copy' });
+    });
+    expect(mockRouterPush).toHaveBeenCalledWith({ pathname: '/trips/[id]', params: { id: 'trip-copy' } });
   });
 });
 

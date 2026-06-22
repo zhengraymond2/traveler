@@ -176,6 +176,90 @@ describe('trips repository', () => {
       ],
     });
   });
+
+  test('duplicates a trip with day events, detail events, and photos', async () => {
+    const sourceTrip = trip({ id: 'trip-source', title: 'Azores' });
+    const sourceDay = dayEvent({ id: 'day-source', tripId: 'trip-source', position: 0 });
+    const sourceDetail = detailEvent({ id: 'detail-source', dayEventId: 'day-source', title: 'Tea' });
+    const sourcePhoto = detailPhoto({ id: 'photo-source', detailEventId: 'detail-source' });
+    const insertedTrips: Trip[] = [];
+    const insertedDays: TripDayEvent[] = [];
+    const insertedDetails: TripDetailEvent[] = [];
+    const insertedPhotos: TripDetailEventPhoto[] = [];
+    let tripSelectCount = 0;
+    const database = {
+      insert(table: unknown) {
+        return {
+          values(row: unknown) {
+            const rows = Array.isArray(row) ? row : [row];
+            if (table === trips) {
+              insertedTrips.push(...(rows as Trip[]));
+            } else if (table === tripDayEvents) {
+              insertedDays.push(...(rows as TripDayEvent[]));
+            } else if (table === tripDetailEvents) {
+              insertedDetails.push(...(rows as TripDetailEvent[]));
+            } else if (table === tripDetailEventPhotos) {
+              insertedPhotos.push(...(rows as TripDetailEventPhoto[]));
+            }
+            return Promise.resolve();
+          },
+        };
+      },
+      select() {
+        return {
+          from(table: unknown) {
+            if (table === trips) {
+              return {
+                where: jest.fn().mockReturnValue({
+                  limit: jest.fn().mockImplementation(() => {
+                    tripSelectCount += 1;
+                    return Promise.resolve(tripSelectCount === 1 ? [sourceTrip] : [insertedTrips[0]]);
+                  }),
+                }),
+              };
+            }
+
+            if (table === tripDayEvents) {
+              return {
+                where: jest.fn().mockReturnValue({
+                  orderBy: jest.fn().mockResolvedValue([sourceDay]),
+                }),
+              };
+            }
+
+            if (table === tripDetailEvents) {
+              return {
+                where: jest.fn().mockReturnValue({
+                  orderBy: jest.fn().mockResolvedValue([sourceDetail]),
+                }),
+              };
+            }
+
+            if (table === tripDetailEventPhotos) {
+              return {
+                where: jest.fn().mockReturnValue({
+                  orderBy: jest.fn().mockResolvedValue([sourcePhoto]),
+                }),
+              };
+            }
+
+            throw new Error(`Unexpected table: ${String(table)}`);
+          },
+        };
+      },
+    } as unknown as AppDatabase;
+
+    const repository = createTripRepository(database);
+
+    await expect(repository.tripsWriter.duplicateTrip({ id: 'trip-source', title: 'Azores Copy' })).resolves.toMatchObject({
+      sourceTripId: 'trip-source',
+      title: 'Azores Copy',
+    });
+    expect(insertedTrips).toHaveLength(1);
+    expect(insertedDays).toMatchObject([{ tripId: insertedTrips[0].id, position: 0 }]);
+    expect(insertedDetails).toMatchObject([{ dayEventId: insertedDays[0].id, title: 'Tea' }]);
+    expect(insertedPhotos).toMatchObject([{ detailEventId: insertedDetails[0].id, uri: 'file:///detail.jpg' }]);
+  });
 });
 
 function trip(overrides: Partial<Trip> = {}): Trip {

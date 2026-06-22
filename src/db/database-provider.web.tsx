@@ -116,6 +116,9 @@ const webRepository: DatabaseContextValue = {
     async deleteTrip() {
       writeError();
     },
+    async duplicateTrip() {
+      writeError();
+    },
     async insertDayEvent() {
       writeError();
     },

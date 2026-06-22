@@ -168,6 +168,23 @@ export default function TripPlannerScreen() {
     }
   }
 
+  async function handleDuplicateTrip() {
+    if (!trip) {
+      return;
+    }
+
+    try {
+      const duplicatedTrip = await tripsWriter.duplicateTrip({
+        id: trip.id,
+        title: `${trip.title} Copy`,
+      });
+      setIsMenuVisible(false);
+      router.push({ pathname: '/trips/[id]', params: { id: duplicatedTrip.id } });
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to duplicate trip.');
+    }
+  }
+
   return (
     <>
       <Stack.Screen
@@ -202,6 +219,7 @@ export default function TripPlannerScreen() {
                     setDialog('rename');
                   }}
                 />
+                <Menu.Item title="Duplicate Trip" leadingIcon="content-copy" onPress={handleDuplicateTrip} />
                 <Menu.Item title="Share Trip" leadingIcon="account-group" disabled />
                 <Menu.Item
                   title="Delete Trip"
