@@ -35,4 +35,17 @@ export const sqlLocationDirectorySchemaStatements = [
   `,
   'create index if not exists location_instagram_links_location_id_idx on location_instagram_links (location_id)',
   'create unique index if not exists location_instagram_links_canonical_url_idx on location_instagram_links (canonical_url)',
+  `
+    create table if not exists recognition_jobs (
+      partial_location_id text primary key,
+      status text not null,
+      canonical_location_id text references locations(id) on delete set null,
+      failure_reason text,
+      recognized_location_json text,
+      created_at timestamptz not null,
+      updated_at timestamptz not null
+    )
+  `,
+  'create index if not exists recognition_jobs_status_idx on recognition_jobs (status)',
+  'create index if not exists recognition_jobs_canonical_location_id_idx on recognition_jobs (canonical_location_id)',
 ];
