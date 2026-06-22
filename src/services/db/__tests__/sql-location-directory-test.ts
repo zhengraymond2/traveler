@@ -125,6 +125,28 @@ describe('SqlLocationDirectory', () => {
     expect(database.statements[0].parameters?.id0).toBe('location-great-wall-of-china');
   });
 
+  test('normalizes PostgreSQL timestamp strings for native clients', async () => {
+    const database = new RecordingDatabase([
+      {
+        rows: [
+          {
+            ...greatWallRow,
+            created_at: '2026-06-21 22:24:53.539',
+            updated_at: '2026-06-22 02:27:57.238',
+          },
+        ],
+      },
+    ]);
+    const directory = new SqlLocationDirectory(database);
+
+    await expect(directory.getLocationsByIds(['location-great-wall-of-china'])).resolves.toMatchObject([
+      {
+        createdAt: '2026-06-21T22:24:53.539Z',
+        updatedAt: '2026-06-22T02:27:57.238Z',
+      },
+    ]);
+  });
+
   test('does not query when getting no canonical location ids', async () => {
     const database = new RecordingDatabase();
     const directory = new SqlLocationDirectory(database);

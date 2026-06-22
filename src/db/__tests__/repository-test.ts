@@ -146,6 +146,9 @@ describe('location repository', () => {
     const sourcePhotosInsert = createInsertMock();
     const sourceLinksInsert = createInsertMock();
     const database = {
+      delete: jest.fn().mockReturnValue({
+        where: jest.fn().mockResolvedValue(undefined),
+      }),
       insert(table: unknown) {
         if (table === localLocations) {
           return localLocationInsert;

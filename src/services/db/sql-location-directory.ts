@@ -420,8 +420,19 @@ function toIsoDateString(value: unknown): string {
     return new Date(value).toISOString();
   }
   if (typeof value === 'string' && value.trim()) {
-    return value;
+    const normalizedValue = normalizeTimestampString(value);
+    const time = Date.parse(normalizedValue);
+    return Number.isFinite(time) ? new Date(time).toISOString() : value;
   }
 
   return new Date(0).toISOString();
+}
+
+function normalizeTimestampString(value: string) {
+  const normalizedValue = value.trim();
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(normalizedValue)) {
+    return `${normalizedValue.replace(' ', 'T')}Z`;
+  }
+
+  return normalizedValue;
 }

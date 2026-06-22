@@ -35,14 +35,19 @@ export function createLocationApiHandler(deps: LocationApiHandlerDeps): Location
 
       return jsonResponse({ error: 'Not found.' }, 404);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Location API request failed.';
       return jsonResponse(
         {
-          error: error instanceof Error ? error.message : 'Location API request failed.',
+          error: message,
         },
-        500
+        getErrorStatus(message)
       );
     }
   };
+}
+
+function getErrorStatus(message: string) {
+  return message === 'PartialLocation must include at least one clue.' ? 400 : 500;
 }
 
 function parseIds(value: string | null) {

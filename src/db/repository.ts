@@ -314,6 +314,9 @@ function createLocationWriter(database: AppDatabase): LocationWriter {
           },
         });
 
+      await database.delete(localLocationSourcePhotos).where(eq(localLocationSourcePhotos.localLocationId, input.id));
+      await database.delete(localLocationSourceLinks).where(eq(localLocationSourceLinks.localLocationId, input.id));
+
       if (input.sourcePhotoUris.length) {
         await database.insert(localLocationSourcePhotos).values(
           input.sourcePhotoUris.map<NewLocalLocationSourcePhoto>((uri, index) => ({
@@ -322,13 +325,7 @@ function createLocationWriter(database: AppDatabase): LocationWriter {
             localLocationId: input.id,
             uri,
           }))
-        ).onConflictDoUpdate({
-          target: localLocationSourcePhotos.id,
-          set: {
-            createdAt: addedAt,
-            uri: localLocationSourcePhotos.uri,
-          },
-        });
+        );
       }
 
       if (input.sourceLinks.length) {
@@ -340,14 +337,7 @@ function createLocationWriter(database: AppDatabase): LocationWriter {
             localLocationId: input.id,
             url,
           }))
-        ).onConflictDoUpdate({
-          target: localLocationSourceLinks.id,
-          set: {
-            createdAt: addedAt,
-            kind: localLocationSourceLinks.kind,
-            url: localLocationSourceLinks.url,
-          },
-        });
+        );
       }
     },
 

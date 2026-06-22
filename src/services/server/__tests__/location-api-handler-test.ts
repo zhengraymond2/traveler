@@ -77,6 +77,29 @@ describe('location API handler', () => {
     expect(enqueued).toEqual([event]);
   });
 
+  test('POST /sources returns 400 when the source has no recognition clues', async () => {
+    const handler = createLocationApiHandler({
+      eventsWriter: createEventsWriter(),
+      locationDirectory: createLocationDirectory(),
+      locationIntakeService: {
+        async addSource() {
+          throw new Error('PartialLocation must include at least one clue.');
+        },
+      },
+    });
+
+    const response = await handler(
+      new Request('http://127.0.0.1:8787/sources', {
+        body: JSON.stringify({}),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      })
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: 'PartialLocation must include at least one clue.' });
+  });
+
   test('returns 404 for unsupported routes', async () => {
     const handler = createLocationApiHandler({
       eventsWriter: createEventsWriter(),

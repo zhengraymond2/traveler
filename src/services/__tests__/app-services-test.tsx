@@ -81,6 +81,20 @@ describe('app services', () => {
       method: 'GET',
     });
   });
+
+  test('LocationApiClient surfaces Location API error messages', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue({
+      json: async () => ({ error: 'PartialLocation must include at least one clue.' }),
+      ok: false,
+      status: 500,
+    });
+    const client = new LocationApiClient({
+      baseUrl: 'http://127.0.0.1:8787',
+      fetchImpl,
+    });
+
+    await expect(client.addSource({})).rejects.toThrow('PartialLocation must include at least one clue.');
+  });
 });
 
 function createFakeServices(): AppServices {

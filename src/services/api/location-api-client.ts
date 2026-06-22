@@ -40,7 +40,7 @@ export class LocationApiClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Location API request failed with HTTP ${response.status}.`);
+      throw new Error(await getLocationApiErrorMessage(response));
     }
 
     return response.json() as Promise<ResponseBody>;
@@ -56,10 +56,21 @@ export class LocationApiClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Location API request failed with HTTP ${response.status}.`);
+      throw new Error(await getLocationApiErrorMessage(response));
     }
 
     return response.json() as Promise<ResponseBody>;
+  }
+}
+
+async function getLocationApiErrorMessage(response: Pick<Response, 'json' | 'status'>) {
+  const fallback = `Location API request failed with HTTP ${response.status}.`;
+
+  try {
+    const body = (await response.json()) as { error?: unknown };
+    return typeof body.error === 'string' && body.error.trim() ? body.error : fallback;
+  } catch {
+    return fallback;
   }
 }
 
