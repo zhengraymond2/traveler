@@ -7,7 +7,7 @@ Implemented or planned mapping:
 - `AwsEventsReader` / `AwsEventsWriter`: SQS queue consumer/producer.
 - `AwsBlobStore`: S3 object storage for server-side blobs.
 - `AwsAuroraDataApiDatabase`: generic Aurora PostgreSQL access through the RDS Data API.
-- `SqlLocationDirectory`: domain helper that searches/upserts canonical `Location` rows using a generic database client.
+- `SqlLocationDirectory`: domain helper that searches/upserts/hydrates canonical `Location` rows using a generic database client.
 - `AwsLocationDirectory`: staging convenience wrapper around `SqlLocationDirectory` and `AwsAuroraDataApiDatabase`.
 
 Do not put AWS secrets in Expo public environment variables. The mobile app should call an API; SQS, S3, RDB, and OpenRouter credentials belong on the backend/worker side.
@@ -27,7 +27,9 @@ Then run:
 npm run aws:aurora:smoke
 ```
 
-The smoke script creates the minimal `locations` table if needed, upserts `Aurora Smoke Test Location`, searches it by name, and prints the matched location.
+The smoke script creates the minimal `locations` and `location_instagram_links` tables if needed, upserts `Aurora Smoke Test Location`, searches it by name, and prints the matched location.
+
+Aurora canonical metadata lives in `locations`. Exact Instagram post/reel/source-link matching lives in `location_instagram_links`, keyed by canonicalized Instagram URL. The app reads saved rows from local SQLite and refreshes cached canonical metadata through the API; it does not call Aurora directly.
 
 ## Staging SQS Config
 

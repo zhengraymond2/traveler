@@ -97,7 +97,8 @@ Create contracts in `src/services/contracts`:
 - `BlobStore.putSourcePhoto(input): Promise<BlobObjectRef>`
 - `BlobStore.getObjectUrl(blobId: string): Promise<string>`
 - `LocationDirectory.search(input: PartialLocation): Promise<LocationSearchResult[]>`
-- `LocationDirectory.upsertLocation(input: RecognizedLocation): Promise<Location>`
+- `LocationDirectory.getLocationsByIds(ids: string[]): Promise<Location[]>`
+- `LocationDirectory.upsertLocation(input: RecognizedLocation, options?: { partialLocation?: PartialLocation }): Promise<Location>`
 - `LocalLocationStore.upsertFromPartialLocation(input): Promise<LocalLocation>`
 - `LocalLocationStore.linkCanonicalLocation(localLocationId, locationId): Promise<void>`
 - `LocationRecognizer.recognize(input: PartialLocation): Promise<RecognizedLocationResult>`
@@ -536,3 +537,5 @@ Add dated notes here during implementation when the design changes or an impleme
 - 2026-06-21: Added AWS staging plumbing for Aurora Data API, SQS events, S3 source-photo blobs, an in-process staging API handler, and a fixture worker smoke runner. The worker smoke path still uses the deterministic fixture recognizer so the full SQS -> worker -> Aurora route can be tested before enabling paid vision calls.
 - 2026-06-21: Added an OpenRouter recognizer skeleton behind `LocationRecognizer`. It expects `OPENROUTER_API_KEY` and `OPENROUTER_MODEL`, sends multimodal chat completions, requests JSON output, and returns `needsReview` for name confidence below `0.8`.
 - 2026-06-21: The staging S3 bucket discovered from AWS is `traveler-staging-195198314852-us-east-1-an`; `.env` should use that full bucket name for `LOCATION_BLOB_BUCKET`.
+- 2026-06-22: Added canonical Instagram source-link reverse lookup. Aurora now has `location_instagram_links`, and workers attach source Instagram URLs to recognized canonical locations so later exact-link shares can skip the LLM path.
+- 2026-06-22: App saved-location reads now go through `SavedLocationsReader`: SQLite `local_locations` is the saved-list authority, SQLite `locations` is a canonical cache, and the cache refreshes in the background through `GET /locations?ids=...`.

@@ -52,6 +52,8 @@ npm run worker:fixture-smoke
 
 `worker:fixture-smoke` intentionally uses a deterministic recognizer fixture instead of OpenRouter. It proves the queue, worker, and Aurora write path without spending on vision calls.
 
+Saved locations are listed from local SQLite `local_locations`. Canonical place metadata is cached in local SQLite `locations` and refreshed from Aurora through the location API. Aurora also stores canonical Instagram source links so repeat shares of the same Instagram URL can match without another LLM call.
+
 ## Get a fresh project
 
 When you're ready, run:
