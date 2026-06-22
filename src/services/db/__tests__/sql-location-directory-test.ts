@@ -111,6 +111,28 @@ describe('SqlLocationDirectory', () => {
     expect(database.statements[0].parameters?.instagramUrl0).toBe('https://www.instagram.com/p/GreatWallPost/');
   });
 
+  test('gets canonical locations by id for local cache hydration', async () => {
+    const database = new RecordingDatabase([{ rows: [greatWallRow] }]);
+    const directory = new SqlLocationDirectory(database);
+
+    await expect(directory.getLocationsByIds(['location-great-wall-of-china'])).resolves.toMatchObject([
+      {
+        id: 'location-great-wall-of-china',
+        name: 'Great Wall of China',
+      },
+    ]);
+    expect(database.statements[0].sql).toContain('where id in (:id0)');
+    expect(database.statements[0].parameters?.id0).toBe('location-great-wall-of-china');
+  });
+
+  test('does not query when getting no canonical location ids', async () => {
+    const database = new RecordingDatabase();
+    const directory = new SqlLocationDirectory(database);
+
+    await expect(directory.getLocationsByIds([])).resolves.toEqual([]);
+    expect(database.statements).toEqual([]);
+  });
+
   test('upserts recognized locations and returns the canonical Location', async () => {
     const database = new RecordingDatabase([{ rows: [greatWallRow] }]);
     const directory = new SqlLocationDirectory(database, {

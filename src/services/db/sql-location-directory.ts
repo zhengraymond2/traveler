@@ -57,6 +57,40 @@ export class SqlLocationDirectory implements LocationDirectory {
       .sort((left, right) => right.score - left.score);
   }
 
+  async getLocationsByIds(ids: string[]): Promise<Location[]> {
+    const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
+    if (!uniqueIds.length) {
+      return [];
+    }
+
+    const parameters: DatabaseParameters = {};
+    const placeholders = uniqueIds.map((id, index) => {
+      const parameterName = `id${index}`;
+      parameters[parameterName] = id;
+      return `:${parameterName}`;
+    });
+    const result = await this.database.execute({
+      sql: `
+        select
+          id,
+          name,
+          google_maps_url,
+          latitude,
+          longitude,
+          trail_map_url,
+          instagram_feed_url,
+          field_confidence_json,
+          created_at,
+          updated_at
+        from locations
+        where id in (${placeholders.join(', ')})
+      `,
+      parameters,
+    });
+
+    return result.rows.map(mapLocationRow);
+  }
+
   async upsertLocation(input: RecognizedLocation, options: UpsertLocationOptions = {}): Promise<Location> {
     const now = this.now().toISOString();
     const parameters = {

@@ -11,6 +11,7 @@ export type UpsertLocationOptions = {
 };
 
 export interface LocationDirectory {
+  getLocationsByIds(ids: string[]): Promise<Location[]>;
   search(input: PartialLocation): Promise<LocationSearchResult[]>;
   upsertLocation(input: RecognizedLocation, options?: UpsertLocationOptions): Promise<Location>;
 }

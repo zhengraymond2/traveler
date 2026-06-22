@@ -26,6 +26,7 @@ export async function createStagingLocationServices(
   return {
     handler: createLocationApiHandler({
       eventsWriter,
+      locationDirectory,
       locationIntakeService,
     }),
     locationIntakeService,

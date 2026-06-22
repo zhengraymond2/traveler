@@ -25,6 +25,11 @@ export class LocalLocationDirectory implements LocationDirectory {
     return results;
   }
 
+  async getLocationsByIds(ids: string[]): Promise<Location[]> {
+    const idSet = new Set(ids);
+    return this.locations.filter((location) => idSet.has(location.id));
+  }
+
   async upsertLocation(input: RecognizedLocation, options: UpsertLocationOptions = {}): Promise<Location> {
     const existing = this.locations.find((location) => isSameCanonicalLocation(location, input));
     const now = new Date().toISOString();

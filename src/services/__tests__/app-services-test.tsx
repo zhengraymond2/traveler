@@ -63,6 +63,24 @@ describe('app services', () => {
       method: 'POST',
     });
   });
+
+  test('LocationApiClient fetches canonical locations by id', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue({
+      json: async () => [{ id: 'location-great-wall', name: 'Great Wall of China' }],
+      ok: true,
+    });
+    const client = new LocationApiClient({
+      baseUrl: 'http://127.0.0.1:8787',
+      fetchImpl,
+    });
+
+    await expect(client.getLocationsByIds(['location-great-wall'])).resolves.toEqual([
+      { id: 'location-great-wall', name: 'Great Wall of China' },
+    ]);
+    expect(fetchImpl).toHaveBeenCalledWith('http://127.0.0.1:8787/locations?ids=location-great-wall', {
+      method: 'GET',
+    });
+  });
 });
 
 function createFakeServices(): AppServices {
