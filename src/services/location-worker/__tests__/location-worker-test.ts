@@ -110,5 +110,11 @@ describe('location worker', () => {
     });
 
     expect(result).toMatchObject({ acknowledged: 0, failed: 1, processed: 1 });
+    await expect(eventsReader.receivePartialLocations(1)).resolves.toMatchObject([
+      {
+        event: greatWallSourceFixture,
+        messageId: 'local-message-1',
+      },
+    ]);
   });
 });
