@@ -1,4 +1,4 @@
-import type { AddSourceInput, AddSourceResult, EventsWriter } from '@/services/contracts';
+import type { AddSourceInput, AddSourceResult, EventsWriter, LocationDirectory } from '@/services/contracts';
 import type { LocationIntakeService } from '@/services/location-intake';
 
 import { createLocationApiHandler } from '../location-api-handler';
@@ -26,6 +26,7 @@ describe('location API handler', () => {
     const calls: AddSourceInput[] = [];
     const handler = createLocationApiHandler({
       eventsWriter: createEventsWriter(),
+      locationDirectory: createLocationDirectory(),
       locationIntakeService: {
         async addSource(input) {
           calls.push(input);
@@ -60,6 +61,7 @@ describe('location API handler', () => {
           enqueued.push(input);
         },
       },
+      locationDirectory: createLocationDirectory(),
       locationIntakeService: createIntakeService(),
     });
 
@@ -78,6 +80,7 @@ describe('location API handler', () => {
   test('returns 404 for unsupported routes', async () => {
     const handler = createLocationApiHandler({
       eventsWriter: createEventsWriter(),
+      locationDirectory: createLocationDirectory(),
       locationIntakeService: createIntakeService(),
     });
 
@@ -85,6 +88,32 @@ describe('location API handler', () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ error: 'Not found.' });
+  });
+
+  test('GET /locations returns canonical locations by id', async () => {
+    const handler = createLocationApiHandler({
+      eventsWriter: createEventsWriter(),
+      locationDirectory: createLocationDirectory(),
+      locationIntakeService: createIntakeService(),
+    });
+
+    const response = await handler(new Request('http://127.0.0.1:8787/locations?ids=location-great-wall'));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual([
+      {
+        allTrailsUrl: null,
+        createdAt: '2026-06-21T12:00:00.000Z',
+        fieldConfidenceJson: '{"name":1}',
+        googleMapsUrl: null,
+        id: 'location-great-wall',
+        instagramFeedUrl: null,
+        latitude: null,
+        longitude: null,
+        name: 'Great Wall of China',
+        updatedAt: '2026-06-21T12:00:00.000Z',
+      },
+    ]);
   });
 });
 
@@ -100,6 +129,42 @@ function createEventsWriter(): EventsWriter {
   return {
     async enqueuePartialLocation() {
       return undefined;
+    },
+  };
+}
+
+function createLocationDirectory(): LocationDirectory {
+  return {
+    async getLocationsByIds(ids) {
+      return ids.map((id) => ({
+        allTrailsUrl: null,
+        createdAt: '2026-06-21T12:00:00.000Z',
+        fieldConfidenceJson: '{"name":1}',
+        googleMapsUrl: null,
+        id,
+        instagramFeedUrl: null,
+        latitude: null,
+        longitude: null,
+        name: 'Great Wall of China',
+        updatedAt: '2026-06-21T12:00:00.000Z',
+      }));
+    },
+    async search() {
+      return [];
+    },
+    async upsertLocation(input) {
+      return {
+        allTrailsUrl: input.allTrailsUrl,
+        createdAt: '2026-06-21T12:00:00.000Z',
+        fieldConfidenceJson: JSON.stringify(input.fieldConfidence),
+        googleMapsUrl: input.googleMapsUrl,
+        id: 'location-great-wall',
+        instagramFeedUrl: input.instagramFeedUrl,
+        latitude: input.latitude,
+        longitude: input.longitude,
+        name: input.name,
+        updatedAt: '2026-06-21T12:00:00.000Z',
+      };
     },
   };
 }

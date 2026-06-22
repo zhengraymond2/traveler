@@ -8,12 +8,12 @@ import { WorldMap, type WorldMapHandle } from '@/components/world-map';
 import { MapControlLayout } from '@/constants/map';
 import { AppColors } from '@/constants/theme';
 import { buildMapRegionSearchOptions, type MapRegionSearchOption } from '@/data/map-region-search-options';
-import { useDatabase } from '@/db/database-provider';
 import type { LocationWithPhotos } from '@/db/repository';
+import { useServices } from '@/services/app-services';
 
 export default function MapScreen() {
   const theme = useTheme();
-  const { reader } = useDatabase();
+  const { savedLocationsReader } = useServices();
   const mapRef = React.useRef<WorldMapHandle>(null);
   const [locations, setLocations] = React.useState<LocationWithPhotos[]>([]);
   const regionSearchOptions = React.useMemo(() => buildMapRegionSearchOptions(locations), [locations]);
@@ -24,7 +24,7 @@ export default function MapScreen() {
 
       async function loadLocations() {
         try {
-          const savedLocations = await reader.listLocationsWithPhotos();
+          const savedLocations = await savedLocationsReader.listLocationsWithPhotos();
           if (isActive) {
             setLocations(savedLocations);
           }
@@ -40,7 +40,7 @@ export default function MapScreen() {
       return () => {
         isActive = false;
       };
-    }, [reader])
+    }, [savedLocationsReader])
   );
 
   return (

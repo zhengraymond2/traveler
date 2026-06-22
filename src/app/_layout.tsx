@@ -7,16 +7,14 @@ import { AuthProvider } from '@/auth';
 import { PlacebookOpeningAnimation } from '@/components/placebook-opening-animation';
 import { paperTheme } from '@/constants/paper-theme';
 import { DatabaseProvider } from '@/db/database-provider';
-import { ServicesProvider, createAppServices } from '@/services/app-services';
-
-const appServices = createAppServices();
+import { DatabaseBackedServicesProvider } from '@/services/database-backed-services-provider';
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <PaperProvider theme={paperTheme}>
-        <ServicesProvider services={appServices}>
-          <DatabaseProvider>
+        <DatabaseProvider>
+          <DatabaseBackedServicesProvider>
             <AuthProvider>
               <Stack>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -44,8 +42,8 @@ export default function RootLayout() {
                 />
               </Stack>
             </AuthProvider>
-          </DatabaseProvider>
-        </ServicesProvider>
+          </DatabaseBackedServicesProvider>
+        </DatabaseProvider>
       </PaperProvider>
       <PlacebookOpeningAnimation />
     </GestureHandlerRootView>

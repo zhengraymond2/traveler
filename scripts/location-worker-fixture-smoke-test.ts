@@ -1,12 +1,15 @@
 import { AwsEventsReader, AwsEventsWriter } from '../src/services/aws/aws-events';
+import { createAwsStagingDatabaseFromEnv } from '../src/services/aws/aws-aurora-data-api-database';
 import { AwsLocationDirectory } from '../src/services/aws/aws-location-directory';
 import type { PartialLocation } from '../src/services/contracts';
+import { ensureSqlLocationDirectorySchema } from '../src/services/db';
 import { createFixtureLocationRecognizer, greatWallFixturePhotoUri } from '../src/services/location-recognizers';
 import { processNextPartialLocations } from '../src/services/location-worker';
 import { InMemoryLocalLocationStore } from '../src/services/server';
 
 async function main() {
   const env = readProcessEnv();
+  await ensureSqlLocationDirectorySchema(await createAwsStagingDatabaseFromEnv(env));
   const eventsWriter = await AwsEventsWriter.fromEnv(env);
   const eventsReader = await AwsEventsReader.fromEnv(env);
   const locationDirectory = await AwsLocationDirectory.fromStagingEnv(env);

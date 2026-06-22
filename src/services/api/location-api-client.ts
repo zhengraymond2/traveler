@@ -1,4 +1,4 @@
-import type { AddSourceInput, AddSourceResult, PartialLocation } from '@/services/contracts';
+import type { AddSourceInput, AddSourceResult, Location, PartialLocation } from '@/services/contracts';
 import type { LocationIntakeService } from '@/services/location-intake';
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Pick<Response, 'json' | 'ok' | 'status'>>;
@@ -23,6 +23,27 @@ export class LocationApiClient {
 
   async enqueuePartialLocation(event: PartialLocation): Promise<void> {
     await this.post('/partial-locations', event);
+  }
+
+  async getLocationsByIds(ids: string[]): Promise<Location[]> {
+    const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
+    if (!uniqueIds.length) {
+      return [];
+    }
+
+    return this.get(`/locations?ids=${uniqueIds.map(encodeURIComponent).join(',')}`);
+  }
+
+  private async get<ResponseBody>(path: string): Promise<ResponseBody> {
+    const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Location API request failed with HTTP ${response.status}.`);
+    }
+
+    return response.json() as Promise<ResponseBody>;
   }
 
   private async post<ResponseBody>(path: string, body: unknown): Promise<ResponseBody> {

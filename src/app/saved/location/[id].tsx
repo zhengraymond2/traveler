@@ -10,11 +10,13 @@ import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
 import type { LocationWithPhotos } from '@/db/repository';
 import type { Collection } from '@/db/schema';
+import { useServices } from '@/services/app-services';
 
 export default function SavedLocationDetailScreen() {
   const theme = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const { reader, writer } = useDatabase();
+  const { savedLocationsReader } = useServices();
   const params = useLocalSearchParams<{ id?: string }>();
   const id = normalizeParam(params.id);
   const [location, setLocation] = React.useState<LocationWithPhotos | null>(null);
@@ -40,7 +42,7 @@ export default function SavedLocationDetailScreen() {
 
         try {
           const [savedLocation, savedCollections] = await Promise.all([
-            id ? reader.getLocation(id) : Promise.resolve(null),
+            id ? savedLocationsReader.getLocation(id) : Promise.resolve(null),
             reader.listCollections(),
           ]);
           if (isActive) {
@@ -65,7 +67,7 @@ export default function SavedLocationDetailScreen() {
       return () => {
         isActive = false;
       };
-    }, [id, reader])
+    }, [id, reader, savedLocationsReader])
   );
 
   return (
@@ -361,7 +363,7 @@ export default function SavedLocationDetailScreen() {
         trailMapUrl: form.trailMapUrl,
       });
 
-      const savedLocation = await reader.getLocation(location.id);
+      const savedLocation = await savedLocationsReader.getLocation(location.id);
       setLocation(savedLocation);
       setForm(createEditForm(savedLocation));
       setIsEditing(false);

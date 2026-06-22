@@ -6,14 +6,14 @@ import { Card, Text, useTheme } from 'react-native-paper';
 import { ImageListRow } from '@/components/image-list-row';
 import { PulsingView } from '@/components/pulsing-view';
 import { AppColors } from '@/constants/theme';
-import { useDatabase } from '@/db/database-provider';
 import type { LocationWithPhotos } from '@/db/repository';
 import { getRecentlyAddedLocations, isProcessingLocation } from '@/features/locations/recently-added';
 import { getCountryRows } from '@/features/locations/saved-country-rows';
+import { useServices } from '@/services/app-services';
 
 export default function SavedLocationsScreen() {
   const theme = useTheme();
-  const { reader } = useDatabase();
+  const { savedLocationsReader } = useServices();
   const [locations, setLocations] = React.useState<LocationWithPhotos[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
@@ -27,7 +27,7 @@ export default function SavedLocationsScreen() {
         setErrorMessage(null);
 
         try {
-          const savedLocations = await reader.listLocationsWithPhotos();
+          const savedLocations = await savedLocationsReader.listLocationsWithPhotos();
           if (isActive) {
             setLocations(savedLocations);
           }
@@ -47,7 +47,7 @@ export default function SavedLocationsScreen() {
       return () => {
         isActive = false;
       };
-    }, [reader])
+    }, [savedLocationsReader])
   );
 
   const countries = React.useMemo(() => getCountryRows(locations), [locations]);

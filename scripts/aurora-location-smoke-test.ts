@@ -1,32 +1,46 @@
-import type { DatabaseClient } from '../src/services/contracts';
 import { createAwsStagingDatabaseFromEnv } from '../src/services/aws/aws-aurora-data-api-database';
-import { SqlLocationDirectory } from '../src/services/db';
+import { ensureSqlLocationDirectorySchema, SqlLocationDirectory } from '../src/services/db';
 
 const smokeLocationName = 'Aurora Smoke Test Location';
+const smokeInstagramUrl = 'https://instagram.com/p/AuroraSmokeLocation/?utm_source=ig_web_copy_link';
 
 async function main() {
   const database = await createAwsStagingDatabaseFromEnv(readProcessEnv());
-  await ensureLocationsSchema(database);
+  await ensureSqlLocationDirectorySchema(database);
 
   const directory = new SqlLocationDirectory(database);
-  const location = await directory.upsertLocation({
-    allTrailsUrl: null,
-    fieldConfidence: {
-      googleMapsUrl: 1,
-      gpsCoordinates: 1,
-      instagramFeedUrl: 1,
-      name: 1,
+  const location = await directory.upsertLocation(
+    {
+      allTrailsUrl: null,
+      fieldConfidence: {
+        googleMapsUrl: 1,
+        gpsCoordinates: 1,
+        instagramFeedUrl: 1,
+        name: 1,
+      },
+      googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Aurora%20Smoke%20Test%20Location',
+      instagramFeedUrl: 'https://www.instagram.com/explore/tags/aurorasmoketest/',
+      latitude: 37.7749,
+      longitude: -122.4194,
+      name: smokeLocationName,
     },
-    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Aurora%20Smoke%20Test%20Location',
-    instagramFeedUrl: 'https://www.instagram.com/explore/tags/aurorasmoketest/',
-    latitude: 37.7749,
-    longitude: -122.4194,
-    name: smokeLocationName,
-  });
+    {
+      partialLocation: {
+        createdAt: new Date().toISOString(),
+        id: 'partial-aurora-instagram-smoke-test',
+        instagramUrls: [smokeInstagramUrl],
+      },
+    }
+  );
   const matches = await directory.search({
     createdAt: new Date().toISOString(),
     id: 'partial-aurora-smoke-test',
     name: smokeLocationName,
+  });
+  const instagramMatches = await directory.search({
+    createdAt: new Date().toISOString(),
+    id: 'partial-aurora-instagram-smoke-test',
+    instagramUrls: ['https://www.instagram.com/p/AuroraSmokeLocation/'],
   });
 
   console.log(
@@ -37,38 +51,13 @@ async function main() {
           id: location.id,
           name: location.name,
         },
+        instagramMatchedCount: instagramMatches.length,
       },
       null,
       2
     )
   );
 }
-
-async function ensureLocationsSchema(database: DatabaseClient) {
-  for (const sql of locationsSchemaStatements) {
-    await database.execute({ sql });
-  }
-}
-
-const locationsSchemaStatements = [
-  `
-    create table if not exists locations (
-      id text primary key,
-      name text,
-      google_maps_url text,
-      latitude double precision,
-      longitude double precision,
-      trail_map_url text,
-      instagram_feed_url text,
-      field_confidence_json text,
-      created_at timestamptz not null,
-      updated_at timestamptz not null
-    )
-  `,
-  'create index if not exists locations_lower_name_idx on locations (lower(name))',
-  'create index if not exists locations_google_maps_url_idx on locations (google_maps_url)',
-  'create index if not exists locations_coordinates_idx on locations (latitude, longitude)',
-];
 
 function readProcessEnv() {
   const globalWithProcess = globalThis as typeof globalThis & {

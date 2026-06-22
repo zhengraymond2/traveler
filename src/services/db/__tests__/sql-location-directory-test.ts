@@ -87,6 +87,52 @@ describe('SqlLocationDirectory', () => {
     expect(database.statements[0].parameters?.minLatitude).toBeLessThan(40.432);
   });
 
+  test('searches locations by canonicalized Instagram source URL', async () => {
+    const database = new RecordingDatabase([
+      {
+        rows: [
+          {
+            ...greatWallRow,
+            matched_instagram_url: 'https://www.instagram.com/p/GreatWallPost/',
+          },
+        ],
+      },
+    ]);
+    const directory = new SqlLocationDirectory(database);
+
+    const results = await directory.search({
+      createdAt: '2026-06-21T12:00:00.000Z',
+      id: 'partial-1',
+      instagramUrls: ['https://instagram.com/p/GreatWallPost/?utm_source=ig_web_copy_link'],
+    });
+
+    expect(results[0].matchedFields).toContain('instagramUrl');
+    expect(database.statements[0].sql).toContain('location_instagram_links');
+    expect(database.statements[0].parameters?.instagramUrl0).toBe('https://www.instagram.com/p/GreatWallPost/');
+  });
+
+  test('gets canonical locations by id for local cache hydration', async () => {
+    const database = new RecordingDatabase([{ rows: [greatWallRow] }]);
+    const directory = new SqlLocationDirectory(database);
+
+    await expect(directory.getLocationsByIds(['location-great-wall-of-china'])).resolves.toMatchObject([
+      {
+        id: 'location-great-wall-of-china',
+        name: 'Great Wall of China',
+      },
+    ]);
+    expect(database.statements[0].sql).toContain('where id in (:id0)');
+    expect(database.statements[0].parameters?.id0).toBe('location-great-wall-of-china');
+  });
+
+  test('does not query when getting no canonical location ids', async () => {
+    const database = new RecordingDatabase();
+    const directory = new SqlLocationDirectory(database);
+
+    await expect(directory.getLocationsByIds([])).resolves.toEqual([]);
+    expect(database.statements).toEqual([]);
+  });
+
   test('upserts recognized locations and returns the canonical Location', async () => {
     const database = new RecordingDatabase([{ rows: [greatWallRow] }]);
     const directory = new SqlLocationDirectory(database, {
@@ -112,6 +158,39 @@ describe('SqlLocationDirectory', () => {
     expect(database.statements[0].parameters).toMatchObject({
       id: 'location-great-wall-of-china',
       name: 'Great Wall of China',
+    });
+  });
+
+  test('upserts recognized locations and attaches source Instagram URLs', async () => {
+    const database = new RecordingDatabase([{ rows: [greatWallRow] }]);
+    const directory = new SqlLocationDirectory(database, {
+      now: () => new Date('2026-06-21T12:00:00.000Z'),
+    });
+
+    await directory.upsertLocation(
+      {
+        allTrailsUrl: null,
+        fieldConfidence: { name: 0.99 },
+        googleMapsUrl: greatWallRow.google_maps_url,
+        instagramFeedUrl: greatWallRow.instagram_feed_url,
+        latitude: 40.4319,
+        longitude: 116.5704,
+        name: 'Great Wall of China',
+      },
+      {
+        partialLocation: {
+          createdAt: '2026-06-21T12:00:00.000Z',
+          id: 'partial-1',
+          instagramUrls: ['https://instagram.com/p/GreatWallPost/?utm_source=ig_web_copy_link'],
+        },
+      }
+    );
+
+    expect(database.statements[1].sql).toContain('insert into location_instagram_links');
+    expect(database.statements[1].parameters).toMatchObject({
+      canonicalUrl: 'https://www.instagram.com/p/GreatWallPost/',
+      locationId: 'location-great-wall-of-china',
+      originalUrl: 'https://instagram.com/p/GreatWallPost/?utm_source=ig_web_copy_link',
     });
   });
 });

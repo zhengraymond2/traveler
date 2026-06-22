@@ -53,7 +53,9 @@ async function processMessage(
   const localLocation = await deps.localLocationStore.findByPartialLocation(message.event);
 
   if (recognized.kind === 'recognized') {
-    const location = await deps.locationDirectory.upsertLocation(recognized.location);
+    const location = await deps.locationDirectory.upsertLocation(recognized.location, {
+      partialLocation: message.event,
+    });
     if (localLocation) {
       await deps.localLocationStore.linkCanonicalLocation(localLocation.id, location.id);
     }

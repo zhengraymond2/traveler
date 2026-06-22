@@ -10,7 +10,7 @@ This branch implements the location recognition flow behind contracts and local 
 | `EventsReader` | `LocalEventsReader` | Lambda/container worker polls SQS and acks by deleting messages. |
 | `BlobStore` | `LocalBlobStore` | Server stores uploaded source blobs in S3. |
 | `DatabaseClient` | Test fakes | `AwsAuroraDataApiDatabase` using Aurora PostgreSQL RDS Data API. |
-| `LocationDirectory` | `LocalLocationDirectory` | `SqlLocationDirectory` backed by `DatabaseClient` for canonical `Location` search/upsert. |
+| `LocationDirectory` | `LocalLocationDirectory` | `SqlLocationDirectory` backed by `DatabaseClient` for canonical `Location` search/upsert/hydration. |
 | `LocationRecognizer` | `FakeLocationRecognizer` | Worker calls OpenRouter vision with the prompt from `Plan.MD`. |
 | Worker | `processNextPartialLocations` | Lambda or long-running container consuming SQS in small batches. |
 
@@ -46,8 +46,34 @@ Before switching the app from local proof services to AWS-backed services:
 3. Verify failed recognition routes to retry/dead-letter behavior instead of disappearing silently.
 4. Upload a source image through the API and verify the stored S3 object is private by default.
 5. Search the RDB-backed `LocationDirectory` by name, Google Maps URL, and GPS coordinates.
-6. Upsert the same recognized location twice and verify canonical dedupe.
-7. Run the local e2e-style tests and the AWS integration smoke test with the same contract-level expectations.
+6. Search the RDB-backed `LocationDirectory` by a previously stored canonical Instagram source URL.
+7. Upsert the same recognized location twice and verify canonical dedupe.
+8. Run the local e2e-style tests and the AWS integration smoke test with the same contract-level expectations.
+
+## App Data Fetching
+
+The app should render saved places from local SQLite `local_locations` rows. The SQLite `locations` table is a cache of Aurora canonical metadata, not the user's saved-list authority.
+
+Current flow:
+
+1. Screens read through `SavedLocationsReader`.
+2. `SavedLocationsReader` returns cached SQLite rows immediately.
+3. It starts a background refresh by calling the location API for saved `canonicalLocationId` values.
+4. The API reads Aurora through `LocationDirectory.getLocationsByIds`.
+5. Fresh canonical rows are written back into the SQLite `locations` cache.
+
+The mobile app still does not import AWS clients or talk directly to Aurora.
+
+## Instagram Reverse Lookup
+
+Aurora includes `location_instagram_links`:
+
+- `location_id`
+- `original_url`
+- `canonical_url`
+- `created_at`
+
+Incoming Instagram URLs are canonicalized before lookup/storage. When a worker recognizes a `PartialLocation`, it stores any source Instagram URLs against the recognized canonical location. Later users sharing the same post/reel URL can match the canonical location without calling the LLM again.
 
 ## Aurora Staging Smoke Test
 
@@ -66,7 +92,7 @@ Then run:
 npm run aws:aurora:smoke
 ```
 
-The command creates the minimal `locations` table, writes `Aurora Smoke Test Location`, reads it back through `SqlLocationDirectory`, and prints the matched count.
+The command creates the minimal `locations` and `location_instagram_links` tables, writes `Aurora Smoke Test Location`, reads it back through `SqlLocationDirectory`, and prints the matched count.
 
 If the logical database does not exist yet, create it once through the Data API using the default `postgres` database:
 

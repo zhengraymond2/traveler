@@ -1,8 +1,9 @@
-import type { AddSourceInput, EventsWriter, PartialLocation } from '@/services/contracts';
+import type { AddSourceInput, EventsWriter, LocationDirectory, PartialLocation } from '@/services/contracts';
 import type { LocationIntakeService } from '@/services/location-intake';
 
 export type LocationApiHandlerDeps = {
   eventsWriter: EventsWriter;
+  locationDirectory: LocationDirectory;
   locationIntakeService: LocationIntakeService;
 };
 
@@ -22,6 +23,10 @@ export function createLocationApiHandler(deps: LocationApiHandlerDeps): Location
         return jsonResponse(await deps.locationIntakeService.addSource(input));
       }
 
+      if (request.method === 'GET' && url.pathname === '/locations') {
+        return jsonResponse(await deps.locationDirectory.getLocationsByIds(parseIds(url.searchParams.get('ids'))));
+      }
+
       if (request.method === 'POST' && url.pathname === '/partial-locations') {
         const input = (await request.json()) as PartialLocation;
         await deps.eventsWriter.enqueuePartialLocation(input);
@@ -38,6 +43,13 @@ export function createLocationApiHandler(deps: LocationApiHandlerDeps): Location
       );
     }
   };
+}
+
+function parseIds(value: string | null) {
+  return (value ?? '')
+    .split(',')
+    .map((id) => decodeURIComponent(id).trim())
+    .filter(Boolean);
 }
 
 function jsonResponse(body: unknown, status = 200) {

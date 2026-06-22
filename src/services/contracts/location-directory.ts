@@ -6,7 +6,12 @@ export type LocationSearchResult = {
   matchedFields: string[];
 };
 
+export type UpsertLocationOptions = {
+  partialLocation?: PartialLocation | null;
+};
+
 export interface LocationDirectory {
+  getLocationsByIds(ids: string[]): Promise<Location[]>;
   search(input: PartialLocation): Promise<LocationSearchResult[]>;
-  upsertLocation(input: RecognizedLocation): Promise<Location>;
+  upsertLocation(input: RecognizedLocation, options?: UpsertLocationOptions): Promise<Location>;
 }
