@@ -69,9 +69,11 @@ With Aurora and SQS configured, run:
 ```bash
 npm run api:smoke
 npm run worker:fixture-smoke
+npm run worker:openrouter-smoke
 ```
 
 `api:smoke` calls the staging HTTP handler in-process and verifies unmatched sources are enqueued. `worker:fixture-smoke` writes a Great Wall fixture event to SQS, consumes it, recognizes it with the deterministic fixture recognizer, upserts Aurora, and acknowledges the message.
+`worker:openrouter-smoke` uses the real OpenRouter recognizer and may incur model charges. Set `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` before running it.
 
 ## OpenRouter Config
 
