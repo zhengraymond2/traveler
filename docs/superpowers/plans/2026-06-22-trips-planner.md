@@ -6,14 +6,14 @@
 
 **Architecture:** Add Trip-specific schema and repository APIs beside the existing location/collection repository. Keep route files thin, put timeline logic in focused feature/components files, and use pure utility tests for date/time/maps behavior before UI wiring. `TripsPlan.md` is the product design source of truth.
 
-**Tech Stack:** Expo SDK 56, Expo Router NativeTabs, React Native, React Native Paper, Expo Image/ImagePicker/Linking, Drizzle/SQLite, Jest, Testing Library React Native.
+**Tech Stack:** Expo SDK 56, Expo Router NativeTabs, React Native, React Native Paper, Expo Image/ImagePicker/Linking, react-native-calendars, Drizzle/SQLite, Jest, Testing Library React Native.
 
 ## Global Constraints
 
 - Follow `AGENTS.md`: Expo SDK 56 docs must be checked before code; exact version docs were checked on 2026-06-22.
 - Keep Trips first-class in SQLite; do not reuse Collections as trip records.
 - Ship local-only behavior in this pass; Aurora collaborative sharing remains deferred.
-- Keep MUI X TimePicker web-only/deferred; native screens use RN-compatible controls.
+- Use `react-native-calendars` for trip start-date selection; native screens use RN-compatible time-of-day controls.
 - Use `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` for Google autocomplete when available.
 - Write failing tests before production behavior changes.
 

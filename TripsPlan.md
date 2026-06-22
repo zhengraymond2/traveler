@@ -10,7 +10,7 @@ Build a first-class Trips area in Traveler. The Trips tab should have the same p
 - The tab is a new top-level `Trips` tab alongside Map, Countries, Collections, and Profile.
 - The list page mirrors Collections: local trip cards first, shared trips section scaffolded for later, create action in the section header, and tile covers based on trip/detail photos.
 - The first planner implementation is local-only. Shared/collaborative trips should be represented in the model as future-ready fields, but no Aurora writes ship in this pass.
-- Native iOS/Android remain the primary target. MUI X TimePicker is web React UI, so native detail-event editing should use an Expo/RN-compatible time control. A web-only MUI adapter can be added later if the web build needs exact MUI behavior.
+- Native iOS/Android remain the primary target. MUI X TimePicker is web React UI, so native trip date selection should use `react-native-calendars`; detail-event time-of-day controls stay native/React Native friendly.
 - Google Places autocomplete should be wrapped behind a component/service boundary. It should read `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` when available and degrade to saved-location search plus pasted Google Maps links when absent.
 
 ## User Experience
@@ -34,7 +34,7 @@ The TripPlanner route owns the page chrome and data loading, while the timeline 
 - Load trip, day events, detail events, and saved locations through the repository.
 - Render header title from trip name.
 - Provide a header menu with at least:
-  - Set start date.
+  - Set start date with `react-native-calendars`.
   - Rename trip.
   - Duplicate trip.
   - Delete trip.
@@ -198,7 +198,7 @@ Use test-first implementation for behavior-heavy pieces:
 - Aurora-backed shared Trips with collaborative multi-write sync.
 - Conflict resolution and optimistic multi-user edits.
 - User invitations and permissions.
-- Web-only MUI X TimePicker adapter.
+- Richer native time-of-day picker for DetailEvents if text-based `HH:mm` controls prove too light.
 - Deep Google Maps link parsing beyond accepting/storing/opening pasted links.
 - Full offline sync queue and retry UI.
 
@@ -208,3 +208,4 @@ Use test-first implementation for behavior-heavy pieces:
 - Expo SQLite: https://docs.expo.dev/versions/v56.0.0/sdk/sqlite/
 - MUI X TimePicker: https://mui.com/x/react-date-pickers/time-picker/
 - React Native Google Autocomplete: https://github.com/AppAndFlow/react-native-google-autocomplete
+- React Native Calendars: https://github.com/wix/react-native-calendars
