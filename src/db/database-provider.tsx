@@ -7,12 +7,16 @@ import migrations from '../../drizzle/migrations';
 import { db } from './client';
 import { createLocationRepository, type LocationRepository } from './repository';
 import { seedSampleLocations } from './sample-locations';
+import { createTripRepository, type TripRepository } from './trips-repository';
 
-type DatabaseContextValue = LocationRepository;
+type DatabaseContextValue = LocationRepository & TripRepository;
 
 const DatabaseContext = React.createContext<DatabaseContextValue | null>(null);
 
-const repository = createLocationRepository(db);
+const repository = {
+  ...createLocationRepository(db),
+  ...createTripRepository(db),
+};
 
 export function DatabaseProvider({ children }: React.PropsWithChildren) {
   const theme = useTheme();

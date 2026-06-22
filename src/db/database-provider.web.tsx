@@ -1,8 +1,15 @@
 import * as React from 'react';
 
 import type { LocationRepository } from './repository';
+import type { TripRepository } from './trips-repository';
 
-const webRepository: LocationRepository = {
+type DatabaseContextValue = LocationRepository & TripRepository;
+
+const writeError = () => {
+  throw new Error('Database writes are only configured for native builds.');
+};
+
+const webRepository: DatabaseContextValue = {
   reader: {
     async listSavedCanonicalLocationIds() {
       return [];
@@ -85,9 +92,43 @@ const webRepository: LocationRepository = {
       throw new Error('Database writes are only configured for native builds.');
     },
   },
+  tripsReader: {
+    async listTrips() {
+      return [];
+    },
+    async listTripsWithDays() {
+      return [];
+    },
+    async getTrip() {
+      return null;
+    },
+  },
+  tripsWriter: {
+    async addDetailEventPhoto() {
+      writeError();
+    },
+    async createDetailEvent() {
+      writeError();
+    },
+    async createTrip() {
+      writeError();
+    },
+    async deleteTrip() {
+      writeError();
+    },
+    async insertDayEvent() {
+      writeError();
+    },
+    async renameTrip() {
+      writeError();
+    },
+    async updateTripStartDate() {
+      writeError();
+    },
+  },
 };
 
-const DatabaseContext = React.createContext<LocationRepository>(webRepository);
+const DatabaseContext = React.createContext<DatabaseContextValue>(webRepository);
 
 export function DatabaseProvider({ children }: React.PropsWithChildren) {
   return <DatabaseContext.Provider value={webRepository}>{children}</DatabaseContext.Provider>;

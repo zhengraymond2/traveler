@@ -5,4 +5,8 @@ export * from './location-photos';
 export * from './local-locations';
 export * from './local-location-source-photos';
 export * from './local-location-source-links';
+export * from './trips';
+export * from './trip-day-events';
+export * from './trip-detail-events';
+export * from './trip-detail-event-photos';
 export * from './relations';
