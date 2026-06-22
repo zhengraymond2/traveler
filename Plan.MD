@@ -224,7 +224,7 @@ Create contracts in `src/services/contracts`:
 - [ ] Leave explicit implementation notes for:
   - Dead-letter behavior.
   - Retry backoff.
-  - OpenAI vision errors.
+  - OpenRouter vision errors.
   - Confidence score threshold policy below `0.8`.
 - [ ] Rerun the focused test until it passes.
 - [ ] Run `npx tsc --noEmit`.

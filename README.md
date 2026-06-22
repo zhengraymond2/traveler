@@ -1,29 +1,27 @@
 # Traveler
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Traveler is an Expo Router app for saving, organizing, and revisiting travel locations.
 
-## Get started
+## Setup
 
-1. Install dependencies
+Install exactly from the committed lockfile:
 
-   ```bash
-   npm install
-   ```
+```bash
+npm ci
+```
 
-2. Start the app
+Start the app:
 
-   ```bash
-   npx expo start
-   ```
+```bash
+npx expo start
+```
 
-In the output, you'll find options to open the app in a
+Run iOS or Android development builds:
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+```bash
+npm run ios
+npm run android
+```
 
 ## Staging Vision Pipeline
 
@@ -54,32 +52,34 @@ npm run worker:fixture-smoke
 
 Saved locations are listed from local SQLite `local_locations`. Canonical place metadata is cached in local SQLite `locations` and refreshed from Aurora through the location API. Aurora also stores canonical Instagram source links so repeat shares of the same Instagram URL can match without another LLM call.
 
-## Get a fresh project
+## Dependency Workflow
 
-When you're ready, run:
+This project exact-pins direct dependencies in `package.json` and commits `package-lock.json`. Use `npm ci` for reproducible installs.
+
+For Expo SDK and React Native native packages, prefer Expo's version-aware installer:
 
 ```bash
-npm run reset-project
+npx expo install <package-name>
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+After changing dependencies, check the diff in both `package.json` and `package-lock.json`. For Expo SDK packages, run:
 
-### Other setup steps
+```bash
+npx expo install --check
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Do not hand-edit transitive dependency versions. Let `package-lock.json` record the resolved tree.
 
-## Learn more
+## Local Commands
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npm test
+npm run lint
+npm run brand:validate
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Database migrations are generated with:
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npm run db:generate
+```

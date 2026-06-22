@@ -79,7 +79,7 @@ async function processMessage(
 
   // TODO: Replace this first-slice failure behavior with retry backoff and a
   // dead-letter queue once the AWS/SQS worker adapter is introduced.
-  // TODO: Capture OpenAI vision/network errors separately from recognizer
+  // TODO: Capture OpenRouter vision/network errors separately from recognizer
   // low-confidence results when the real recognizer replaces the fixture fake.
   if (localLocation) {
     await deps.localLocationStore.updateStatus(localLocation.id, 'failed');

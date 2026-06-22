@@ -10,7 +10,7 @@ type WorldMapProps = {
 };
 
 export type WorldMapHandle = {
-  moveToSearchResult: (coordinate: MapCoordinate, zoomLevel?: number) => boolean;
+  moveToSearchResult: (coordinate: MapCoordinate, zoomLevel?: number, locationId?: string) => boolean;
   moveToUserLocation: () => Promise<boolean>;
 };
 

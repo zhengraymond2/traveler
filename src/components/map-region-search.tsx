@@ -162,6 +162,8 @@ const styles = StyleSheet.create({
   expandedPanel: {
     position: 'absolute',
     top: MapControlLayout.top,
+    zIndex: 10,
+    elevation: 10,
     overflow: 'hidden',
     borderRadius: 18,
     backgroundColor: AppColors.surface,

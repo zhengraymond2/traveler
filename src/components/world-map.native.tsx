@@ -4,9 +4,9 @@ import { Image } from 'expo-image';
 import * as ExpoLocation from 'expo-location';
 import { router } from 'expo-router';
 import * as React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Text } from 'react-native-paper';
-import Animated, { BounceIn, BounceOut, FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { getLocationCategoryAppearance } from '@/constants/location-categories';
 import { MapControlLayout, MapGestureSettings, MapTerrainStyle, MapTuning } from '@/constants/map';
@@ -33,7 +33,7 @@ type WorldMapProps = {
 };
 
 export type WorldMapHandle = {
-  moveToSearchResult: (coordinate: MapCoordinate, zoomLevel?: number) => boolean;
+  moveToSearchResult: (coordinate: MapCoordinate, zoomLevel?: number, locationId?: string) => boolean;
   moveToUserLocation: () => Promise<boolean>;
 };
 
@@ -55,12 +55,14 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
 ) {
   const cameraRef = React.useRef<Mapbox.Camera>(null);
   const userCoordinateRef = React.useRef<CoordinatePair | null>(null);
+  const currentZoomLevelRef = React.useRef<number | null>(null);
   const cameraBoundsStateRef = React.useRef({
     hasCommittedBounds: false,
     hasMovedSinceCommit: true,
     lastCommittedBounds: null as VisibleBounds | null,
   });
   const [hasLocationPermission, setHasLocationPermission] = React.useState(false);
+  const [hasMeasuredMapContainer, setHasMeasuredMapContainer] = React.useState(false);
   const [visibleBounds, setVisibleBounds] = React.useState<VisibleBounds | null>(null);
   const [selectedLocation, setSelectedLocation] = React.useState<CoordinateLocation | null>(null);
   const locationDotShape = React.useMemo(() => createLocationDotShape(locations), [locations]);
@@ -88,6 +90,16 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
     });
     return true;
   }, []);
+
+  const focusLocationMarker = React.useCallback((coordinate: CoordinatePair | null) => {
+    const currentZoomLevel = currentZoomLevelRef.current;
+    const zoomLevel =
+      typeof currentZoomLevel === 'number' && currentZoomLevel > MapTuning.locationSearchZoomLevel
+        ? currentZoomLevel
+        : MapTuning.locationSearchZoomLevel;
+
+    return flyToMapCoordinate(coordinate, zoomLevel);
+  }, [flyToMapCoordinate]);
 
   const requestCurrentUserCoordinate = React.useCallback(async () => {
     try {
@@ -141,7 +153,14 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
   React.useImperativeHandle(
     ref,
     () => ({
-      moveToSearchResult: (coordinate, zoomLevel) => {
+      moveToSearchResult: (coordinate, zoomLevel, locationId) => {
+        const searchedLocation = locationId ? locationsById.get(locationId) : null;
+
+        if (searchedLocation && hasCoordinates(searchedLocation)) {
+          setSelectedLocation(searchedLocation);
+          return focusLocationMarker([searchedLocation.longitude, searchedLocation.latitude]);
+        }
+
         return flyToMapCoordinate([coordinate.longitude, coordinate.latitude], zoomLevel);
       },
       moveToUserLocation: async () => {
@@ -150,13 +169,13 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
         return flyToMapCoordinate(coordinate) || flyToMapCoordinate(userCoordinateRef.current);
       },
     }),
-    [flyToMapCoordinate, requestCurrentUserCoordinate]
+    [flyToMapCoordinate, focusLocationMarker, locationsById, requestCurrentUserCoordinate]
   );
 
   const handleLocationPress = React.useCallback((location: CoordinateLocation) => {
     setSelectedLocation(location);
-    flyToMapCoordinate([location.longitude, location.latitude]);
-  }, [flyToMapCoordinate]);
+    focusLocationMarker([location.longitude, location.latitude]);
+  }, [focusLocationMarker]);
 
   const handleDotPress = React.useCallback(
     (event: { features: GeoJSON.Feature[] }) => {
@@ -172,6 +191,8 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
   );
 
   const handleCameraChanged = React.useCallback((state: MapState) => {
+    rememberCurrentZoomLevel(state, currentZoomLevelRef);
+
     const nextBounds = getVisibleBounds(state.properties.bounds);
     const boundsState = cameraBoundsStateRef.current;
 
@@ -184,6 +205,8 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
   }, []);
 
   const handleMapIdle = React.useCallback((state: MapState) => {
+    rememberCurrentZoomLevel(state, currentZoomLevelRef);
+
     const boundsState = cameraBoundsStateRef.current;
     if (boundsState.hasCommittedBounds && !boundsState.hasMovedSinceCommit) {
       return;
@@ -197,6 +220,11 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
     setVisibleBounds((currentBounds) => {
       return areVisibleBoundsEqual(currentBounds, nextBounds) ? currentBounds : nextBounds;
     });
+  }, []);
+
+  const handleMapContainerLayout = React.useCallback((event: LayoutChangeEvent) => {
+    const { height, width } = event.nativeEvent.layout;
+    setHasMeasuredMapContainer(width > 0 && height > 0);
   }, []);
 
   const handleUserLocationUpdate = React.useCallback((location: Location) => {
@@ -228,58 +256,64 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
   }
 
   return (
-    <View style={styles.mapContainer}>
-      <Mapbox.MapView
-        style={styles.map}
-        styleURL={Mapbox.StyleURL.Outdoors}
-        projection="globe"
-        compassEnabled
-        compassFadeWhenNorth={false}
-        {...mapCompassControlProps}
-        scaleBarEnabled={false}
-        pitchEnabled
-        rotateEnabled
-        maxPitch={70}
-        gestureSettings={MapGestureSettings}
-        onCameraChanged={handleCameraChanged}
-        onMapIdle={handleMapIdle}>
-        <Mapbox.Camera
-          ref={cameraRef}
-          centerCoordinate={[0, 20]}
-          zoomLevel={0}
-          minZoomLevel={0}
-          animationMode="none"
-        />
-        <Mapbox.RasterDemSource
-          id={MapTuning.terrainSourceId}
-          url={MapTuning.mapboxTerrainDemUrl}
-          tileSize={512}
-          maxZoomLevel={14}
-        />
-        <Mapbox.Terrain sourceID={MapTuning.terrainSourceId} style={MapTerrainStyle} />
-        {hasLocationPermission ? (
-          <>
-            <Mapbox.UserLocation visible={false} minDisplacement={25} onUpdate={handleUserLocationUpdate} />
-            <Mapbox.LocationPuck
-              pulsing={{ isEnabled: true, color: AppColors.mapUserLocationPulse, radius: 52 }}
-              visible
+    <View testID="world-map-container" style={styles.mapContainer} onLayout={handleMapContainerLayout}>
+      {hasMeasuredMapContainer ? (
+        <Mapbox.MapView
+          style={styles.map}
+          styleURL={Mapbox.StyleURL.Outdoors}
+          projection="globe"
+          compassEnabled
+          compassFadeWhenNorth={false}
+          {...mapCompassControlProps}
+          scaleBarEnabled={false}
+          pitchEnabled
+          rotateEnabled
+          maxPitch={70}
+          gestureSettings={MapGestureSettings}
+          onCameraChanged={handleCameraChanged}
+          onMapIdle={handleMapIdle}>
+          <Mapbox.Camera
+            ref={cameraRef}
+            centerCoordinate={[0, 20]}
+            zoomLevel={0}
+            minZoomLevel={0}
+            animationMode="none"
+          />
+          <Mapbox.RasterDemSource
+            id={MapTuning.terrainSourceId}
+            url={MapTuning.mapboxTerrainDemUrl}
+            tileSize={512}
+            maxZoomLevel={14}
+          />
+          <Mapbox.Terrain sourceID={MapTuning.terrainSourceId} style={MapTerrainStyle} />
+          {hasLocationPermission ? (
+            <>
+              <Mapbox.UserLocation visible={false} minDisplacement={25} onUpdate={handleUserLocationUpdate} />
+              <Mapbox.LocationPuck
+                pulsing={{ isEnabled: true, color: AppColors.mapUserLocationPulse, radius: 52 }}
+                visible
+              />
+            </>
+          ) : null}
+          {locationDotShape.features.length ? (
+            <Mapbox.ShapeSource
+              id="saved-location-dots"
+              shape={locationDotShape}
+              hitbox={{ width: 44, height: 44 }}
+              onPress={handleDotPress}>
+              <Mapbox.CircleLayer id="saved-location-dot-layer" style={mapLayerStyles.locationDot} />
+              <Mapbox.SymbolLayer id="saved-location-icon-layer" style={mapLayerStyles.locationIcon} />
+            </Mapbox.ShapeSource>
+          ) : null}
+          {visiblePhotoPinLocations.map((location) => (
+            <PhotoMarker
+              key={location.id}
+              location={location}
+              onPress={handleLocationPress}
             />
-          </>
-        ) : null}
-        {locationDotShape.features.length ? (
-          <Mapbox.ShapeSource
-            id="saved-location-dots"
-            shape={locationDotShape}
-            hitbox={{ width: 44, height: 44 }}
-            onPress={handleDotPress}>
-            <Mapbox.CircleLayer id="saved-location-dot-layer" style={mapLayerStyles.locationDot} />
-            <Mapbox.SymbolLayer id="saved-location-icon-layer" style={mapLayerStyles.locationIcon} />
-          </Mapbox.ShapeSource>
-        ) : null}
-        {visiblePhotoPinLocations.map((location) => (
-          <PhotoMarker key={location.id} location={location} onPress={handleLocationPress} />
-        ))}
-      </Mapbox.MapView>
+          ))}
+        </Mapbox.MapView>
+      ) : null}
 
       {visibleSelectedLocation ? (
         <Pressable
@@ -298,12 +332,15 @@ export const WorldMap = React.forwardRef<WorldMapHandle, WorldMapProps>(function
 });
 
 type CoordinateLocation = LocationWithPhotos & { latitude: number; longitude: number };
+type PhotoPinLocation = CoordinateLocation & {
+  photos: [{ uri: string }, ...LocationWithPhotos['photos']];
+};
 
 function PhotoMarker({
   location,
   onPress,
 }: {
-  location: CoordinateLocation & { photos: [{ uri: string }, ...LocationWithPhotos['photos']] };
+  location: PhotoPinLocation;
   onPress: (location: CoordinateLocation) => void;
 }) {
   const categoryAppearance = getLocationCategoryAppearance(location.category);
@@ -313,27 +350,17 @@ function PhotoMarker({
       allowOverlap={false}
       anchor={{ x: 0.5, y: 1 }}
       coordinate={[location.longitude, location.latitude]}>
-      <Animated.View
-        entering={BounceIn.duration(520)}
-        exiting={BounceOut.duration(260)}
-        style={styles.photoPinAnimated}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Open ${getLocationName(location)} preview`}
-          hitSlop={8}
-          style={styles.photoPin}
-          onPress={() => onPress(location)}>
-          <View style={[styles.photoPinBubble, { borderColor: categoryAppearance.color }]}>
-            <Image source={{ uri: location.photos[0].uri }} style={styles.photoPinImage} contentFit="cover" />
-            <View style={[styles.photoPinIconBadge, { backgroundColor: categoryAppearance.color }]}>
-              <Text selectable={false} variant="labelSmall" style={styles.photoPinIconText}>
-                {categoryAppearance.glyph}
-              </Text>
-            </View>
-          </View>
-          <View style={[styles.photoPinTip, { backgroundColor: categoryAppearance.color }]} />
-        </Pressable>
-      </Animated.View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${getLocationName(location)} preview`}
+        hitSlop={8}
+        style={styles.photoPin}
+        onPress={() => onPress(location)}>
+        <View style={[styles.photoPinBubble, { borderColor: categoryAppearance.color }]}>
+          <Image source={{ uri: location.photos[0].uri }} style={styles.photoPinImage} contentFit="cover" />
+        </View>
+        <View style={[styles.photoPinTip, { backgroundColor: categoryAppearance.color }]} />
+      </Pressable>
     </Mapbox.MarkerView>
   );
 }
@@ -468,6 +495,17 @@ function getVisibleBounds(bounds: MapState['properties']['bounds']) {
   }
 
   return { ne, sw };
+}
+
+function rememberCurrentZoomLevel(
+  state: MapState,
+  zoomLevelRef: React.MutableRefObject<number | null>
+) {
+  const zoomLevel = state.properties.zoom;
+
+  if (Number.isFinite(zoomLevel)) {
+    zoomLevelRef.current = zoomLevel;
+  }
 }
 
 function getCoordinatePair(position: GeoJSON.Position | undefined): CoordinatePair | null {
@@ -610,10 +648,6 @@ const styles = StyleSheet.create({
     height: 48,
     alignItems: 'center',
   },
-  photoPinAnimated: {
-    width: 40,
-    height: 48,
-  },
   photoPinBubble: {
     width: 38,
     height: 38,
@@ -623,24 +657,6 @@ const styles = StyleSheet.create({
     borderColor: AppColors.primary,
     backgroundColor: AppColors.surface,
     boxShadow: `0 5px 12px ${AppColors.shadow}`,
-  },
-  photoPinIconBadge: {
-    position: 'absolute',
-    right: -3,
-    bottom: -3,
-    width: 18,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 9,
-    borderWidth: 1,
-    borderColor: AppColors.surface,
-  },
-  photoPinIconText: {
-    color: AppColors.textInverse,
-    fontSize: 9,
-    fontWeight: '800',
-    lineHeight: 12,
   },
   photoPinImage: {
     width: '100%',

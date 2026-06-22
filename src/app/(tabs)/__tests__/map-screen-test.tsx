@@ -24,10 +24,6 @@ jest.mock('expo-router', () => {
   };
 });
 
-jest.mock('@/db/database-provider', () => ({
-  useDatabase: () => ({}),
-}));
-
 jest.mock('@/services/app-services', () => ({
   useServices: () => ({
     savedLocationsReader: {
@@ -68,9 +64,10 @@ jest.mock('@/components/map-region-search', () => {
           onSelect({
             center: { latitude: 48.636, longitude: -1.5115 },
             label: 'Mont Saint Michel',
+            locationId: 'mont-saint-michel',
             source: 'location',
             value: 'mont-saint-michel',
-            zoomLevel: 5.15,
+            zoomLevel: 7,
           })
         }>
         <Text>Mont Saint Michel</Text>
@@ -91,7 +88,7 @@ describe('MapScreen', () => {
 
     fireEvent.press(screen.getByTestId('select-map-search-result'));
 
-    expect(mockMoveToSearchResult).toHaveBeenCalledWith({ latitude: 48.636, longitude: -1.5115 }, 5.15);
+    expect(mockMoveToSearchResult).toHaveBeenCalledWith({ latitude: 48.636, longitude: -1.5115 }, 7, 'mont-saint-michel');
     expect(mockMoveToCountryCoordinate).not.toHaveBeenCalled();
   });
 });

@@ -23,9 +23,10 @@ describe('map region search options', () => {
         },
         detail: 'France · Saved location',
         label: 'Mont Saint Michel',
+        locationId: 'mont-saint-michel',
         source: 'location',
         value: 'mont-saint-michel',
-        zoomLevel: MapTuning.countryViewZoomLevel + 1,
+        zoomLevel: MapTuning.locationSearchZoomLevel,
       })
     );
   });

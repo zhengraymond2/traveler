@@ -2,7 +2,7 @@ const countryViewZoomLevel = 4.15;
 
 export const MapTuning = {
   countryViewZoomLevel,
-  locationSearchZoomLevel: countryViewZoomLevel + 1,
+  locationSearchZoomLevel: 7,
   cameraAnimationDurationMs: 900,
   previewGalleryCellCount: 9,
   terrainSourceId: 'mapbox-terrain-dem',

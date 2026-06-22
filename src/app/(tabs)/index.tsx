@@ -95,7 +95,7 @@ export default function MapScreen() {
       return;
     }
 
-    mapRef.current?.moveToSearchResult(option.center, option.zoomLevel);
+    mapRef.current?.moveToSearchResult(option.center, option.zoomLevel, option.locationId);
   }
 }
 

@@ -12,6 +12,7 @@ export type MapRegionSearchOption = {
   center: MapRegionSearchCoordinate | null;
   detail?: string;
   label: string;
+  locationId?: string;
   source: 'country' | 'custom' | 'location' | 'unknown';
   value: string;
   zoomLevel: number;
@@ -146,6 +147,7 @@ function createLocationSearchOption(location: LocationWithPhotos): MapRegionSear
         : null,
     detail: [country, 'Saved location'].filter(Boolean).join(' · '),
     label,
+    locationId: location.id,
     source: 'location',
     value: location.id,
     zoomLevel: MapTuning.locationSearchZoomLevel,
