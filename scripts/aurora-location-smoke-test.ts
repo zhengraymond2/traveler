@@ -1,12 +1,11 @@
-import type { DatabaseClient } from '../src/services/contracts';
 import { createAwsStagingDatabaseFromEnv } from '../src/services/aws/aws-aurora-data-api-database';
-import { SqlLocationDirectory } from '../src/services/db';
+import { ensureSqlLocationDirectorySchema, SqlLocationDirectory } from '../src/services/db';
 
 const smokeLocationName = 'Aurora Smoke Test Location';
 
 async function main() {
   const database = await createAwsStagingDatabaseFromEnv(readProcessEnv());
-  await ensureLocationsSchema(database);
+  await ensureSqlLocationDirectorySchema(database);
 
   const directory = new SqlLocationDirectory(database);
   const location = await directory.upsertLocation({
@@ -43,32 +42,6 @@ async function main() {
     )
   );
 }
-
-async function ensureLocationsSchema(database: DatabaseClient) {
-  for (const sql of locationsSchemaStatements) {
-    await database.execute({ sql });
-  }
-}
-
-const locationsSchemaStatements = [
-  `
-    create table if not exists locations (
-      id text primary key,
-      name text,
-      google_maps_url text,
-      latitude double precision,
-      longitude double precision,
-      trail_map_url text,
-      instagram_feed_url text,
-      field_confidence_json text,
-      created_at timestamptz not null,
-      updated_at timestamptz not null
-    )
-  `,
-  'create index if not exists locations_lower_name_idx on locations (lower(name))',
-  'create index if not exists locations_google_maps_url_idx on locations (google_maps_url)',
-  'create index if not exists locations_coordinates_idx on locations (latitude, longitude)',
-];
 
 function readProcessEnv() {
   const globalWithProcess = globalThis as typeof globalThis & {

@@ -77,4 +77,30 @@ describe('local location recognition flow', () => {
       processed: 1,
     });
   });
+
+  test('shared Instagram link is stored after recognition and later skips the worker', async () => {
+    const harness = createRecognitionTestHarness();
+    const sourceInstagramUrl = 'https://instagram.com/p/GreatWallPost/?utm_source=ig_web_copy_link';
+
+    const firstResult = await harness.intake.addSource({
+      instagramUrls: [sourceInstagramUrl],
+      sourcePhotoUris: [greatWallSourcePhotoUri],
+    });
+
+    expect(firstResult.processingCount).toBe(1);
+    await harness.processNext();
+
+    const secondResult = await harness.intake.addSource({
+      instagramUrls: ['https://www.instagram.com/p/GreatWallPost/'],
+    });
+
+    expect(secondResult.emittedEvent).toBeNull();
+    expect(secondResult.processingCount).toBe(0);
+    expect(harness.eventsStore.serializedEvents).toHaveLength(1);
+    expect(secondResult.matchedLocations).toMatchObject([
+      {
+        name: 'Great Wall of China',
+      },
+    ]);
+  });
 });

@@ -4,10 +4,13 @@ import type {
   LocationSearchResult,
   PartialLocation,
   RecognizedLocation,
+  UpsertLocationOptions,
 } from '@/services/contracts';
+import { canonicalizeInstagramUrls } from '@/services/location-links';
 
 export class LocalLocationDirectory implements LocationDirectory {
   private locations: Location[];
+  private instagramLinks = new Map<string, string>();
 
   constructor(seedLocations: Location[] = []) {
     this.locations = [...seedLocations];
@@ -15,20 +18,21 @@ export class LocalLocationDirectory implements LocationDirectory {
 
   async search(input: PartialLocation): Promise<LocationSearchResult[]> {
     const results = this.locations
-      .map((location) => scoreLocation(input, location))
+      .map((location) => scoreLocation(input, location, this.instagramLinks))
       .filter((result): result is LocationSearchResult => result !== null)
       .sort((first, second) => second.score - first.score);
 
     return results;
   }
 
-  async upsertLocation(input: RecognizedLocation): Promise<Location> {
+  async upsertLocation(input: RecognizedLocation, options: UpsertLocationOptions = {}): Promise<Location> {
     const existing = this.locations.find((location) => isSameCanonicalLocation(location, input));
     const now = new Date().toISOString();
 
     if (existing) {
       const updated = mergeLocation(existing, input, now);
       this.locations = this.locations.map((location) => (location.id === existing.id ? updated : location));
+      this.recordInstagramLinks(updated.id, options.partialLocation?.instagramUrls);
       return updated;
     }
 
@@ -46,15 +50,26 @@ export class LocalLocationDirectory implements LocationDirectory {
     };
 
     this.locations.push(created);
+    this.recordInstagramLinks(created.id, options.partialLocation?.instagramUrls);
     return created;
   }
 
   async listLocations(): Promise<Location[]> {
     return [...this.locations];
   }
+
+  private recordInstagramLinks(locationId: string, values: string[] | null | undefined) {
+    for (const canonicalUrl of canonicalizeInstagramUrls(values)) {
+      this.instagramLinks.set(canonicalUrl, locationId);
+    }
+  }
 }
 
-function scoreLocation(input: PartialLocation, location: Location): LocationSearchResult | null {
+function scoreLocation(
+  input: PartialLocation,
+  location: Location,
+  instagramLinks: Map<string, string>
+): LocationSearchResult | null {
   const matchedFields: string[] = [];
   let score = 0;
 
@@ -75,6 +90,10 @@ function scoreLocation(input: PartialLocation, location: Location): LocationSear
   ) {
     matchedFields.push('gpsCoordinates');
     score += 0.8;
+  }
+  if (canonicalizeInstagramUrls(input.instagramUrls).some((url) => instagramLinks.get(url) === location.id)) {
+    matchedFields.push('instagramUrl');
+    score += 0.95;
   }
 
   return matchedFields.length ? { location, score: Math.min(1, score), matchedFields } : null;
