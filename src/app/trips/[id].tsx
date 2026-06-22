@@ -269,6 +269,7 @@ export default function TripPlannerScreen() {
 
       {detailDraft ? (
         <DetailEventForm
+          key={`${detailDraft.dayEventId}-${detailDraft.startMinute}-${detailDraft.endMinute}`}
           draft={detailDraft}
           savedLocations={savedLocations}
           visible

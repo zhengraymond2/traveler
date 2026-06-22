@@ -5,7 +5,7 @@ import type { TripRepository } from './trips-repository';
 
 type DatabaseContextValue = LocationRepository & TripRepository;
 
-const writeError = () => {
+const writeError = (): never => {
   throw new Error('Database writes are only configured for native builds.');
 };
 
@@ -104,29 +104,29 @@ const webRepository: DatabaseContextValue = {
     },
   },
   tripsWriter: {
-    async addDetailEventPhoto() {
-      writeError();
+    addDetailEventPhoto() {
+      return writeError();
     },
-    async createDetailEvent() {
-      writeError();
+    createDetailEvent() {
+      return writeError();
     },
-    async createTrip() {
-      writeError();
+    createTrip() {
+      return writeError();
     },
-    async deleteTrip() {
-      writeError();
+    deleteTrip() {
+      return writeError();
     },
-    async duplicateTrip() {
-      writeError();
+    duplicateTrip() {
+      return writeError();
     },
-    async insertDayEvent() {
-      writeError();
+    insertDayEvent() {
+      return writeError();
     },
-    async renameTrip() {
-      writeError();
+    renameTrip() {
+      return writeError();
     },
-    async updateTripStartDate() {
-      writeError();
+    updateTripStartDate() {
+      return writeError();
     },
   },
 };

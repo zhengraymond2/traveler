@@ -48,11 +48,6 @@ export function DetailEventForm({ draft, onCancel, onSave, savedLocations, visib
   const [description, setDescription] = React.useState('');
   const [photos, setPhotos] = React.useState<{ uri: string }[]>([]);
 
-  React.useEffect(() => {
-    setFromTime(formatMinuteOfDay(draft.startMinute));
-    setToTime(formatMinuteOfDay(draft.endMinute));
-  }, [draft.endMinute, draft.startMinute]);
-
   const mapsUrl = getDetailEventMapsUrl({
     addressText,
     googleMapsUrl,
