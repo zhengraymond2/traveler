@@ -48,6 +48,9 @@ const webRepository: LocationRepository = {
     async upsertCachedCanonicalLocations() {
       return undefined;
     },
+    async cacheRemoteLocalLocation() {
+      throw new Error('Database writes are only configured for native builds.');
+    },
     async createLocation() {
       throw new Error('Database writes are only configured for native builds.');
     },

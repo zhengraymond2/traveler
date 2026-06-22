@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { useDatabase } from '@/db/database-provider';
+import type { AddSourceInput } from '@/services/contracts';
 
 import { LocationApiClient } from './api/location-api-client';
 import { createAppServices, getDefaultApiBaseUrl, ServicesProvider } from './app-services';
@@ -22,7 +23,7 @@ export function DatabaseBackedServicesProvider({ children }: React.PropsWithChil
     return {
       ...services,
       locationIntakeService: {
-        async addSource(input) {
+        async addSource(input: AddSourceInput) {
           const result = await services.locationIntakeService.addSource(input);
           if (result.matchedLocations.length) {
             await repository.writer.upsertCachedCanonicalLocations(result.matchedLocations);
