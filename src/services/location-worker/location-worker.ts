@@ -4,6 +4,7 @@ import type {
   LocationDirectory,
   LocationRecognizer,
   QueuedPartialLocation,
+  RecognitionJobStore,
 } from '@/services/contracts';
 
 export type LocationWorkerDeps = {
@@ -11,6 +12,7 @@ export type LocationWorkerDeps = {
   locationDirectory: LocationDirectory;
   localLocationStore: LocalLocationStore;
   recognizer: LocationRecognizer;
+  recognitionJobStore?: RecognitionJobStore;
 };
 
 export type LocationWorkerOptions = {
@@ -23,6 +25,11 @@ export type LocationWorkerResult = {
   matched: number;
   processed: number;
 };
+
+export type QueuedLocationWorkerResult =
+  | { outcome: 'matched'; locationId: string }
+  | { outcome: 'needsReview'; reason: string }
+  | { outcome: 'retry'; reason: string };
 
 export async function processNextPartialLocations(
   deps: LocationWorkerDeps,
@@ -43,12 +50,10 @@ export async function processNextPartialLocations(
   return result;
 }
 
-async function processMessage(
-  deps: LocationWorkerDeps,
-  message: QueuedPartialLocation,
-  result: LocationWorkerResult
-) {
-  result.processed += 1;
+export async function processQueuedPartialLocation(
+  deps: Omit<LocationWorkerDeps, 'eventsReader'>,
+  message: QueuedPartialLocation
+): Promise<QueuedLocationWorkerResult> {
   const recognized = await deps.recognizer.recognize(message.event);
   const localLocation = await deps.localLocationStore.findByPartialLocation(message.event);
 
@@ -59,32 +64,48 @@ async function processMessage(
     if (localLocation) {
       await deps.localLocationStore.linkCanonicalLocation(localLocation.id, location.id);
     }
+    await deps.recognitionJobStore?.markMatched(message.event.id, {
+      location,
+      recognizedLocation: recognized.location,
+    });
+    return { locationId: location.id, outcome: 'matched' };
+  }
+
+  if (recognized.kind === 'needsReview') {
+    if (localLocation) {
+      await deps.localLocationStore.updateStatus(localLocation.id, 'needsReview');
+    }
+    await deps.recognitionJobStore?.markNeedsReview(message.event.id, {
+      reason: recognized.reason,
+      recognizedLocation: recognized.location,
+    });
+    return { outcome: 'needsReview', reason: recognized.reason };
+  }
+
+  return { outcome: 'retry', reason: recognized.reason };
+}
+
+async function processMessage(
+  deps: LocationWorkerDeps,
+  message: QueuedPartialLocation,
+  result: LocationWorkerResult
+) {
+  result.processed += 1;
+  const messageResult = await processQueuedPartialLocation(deps, message);
+
+  if (messageResult.outcome === 'matched') {
     await deps.eventsReader.ack(message.messageId);
     result.acknowledged += 1;
     result.matched += 1;
     return;
   }
 
-  if (recognized.kind === 'needsReview') {
-    // TODO: Decide the confidence threshold UX for fields below 0.8.
-    // For now, mark the local record so the app can show a manual review state.
-    if (localLocation) {
-      await deps.localLocationStore.updateStatus(localLocation.id, 'needsReview');
-    }
+  if (messageResult.outcome === 'needsReview') {
     await deps.eventsReader.ack(message.messageId);
     result.acknowledged += 1;
     result.failed += 1;
     return;
   }
 
-  // TODO: Replace this first-slice failure behavior with retry backoff and a
-  // dead-letter queue once the AWS/SQS worker adapter is introduced.
-  // TODO: Capture OpenRouter vision/network errors separately from recognizer
-  // low-confidence results when the real recognizer replaces the fixture fake.
-  if (localLocation) {
-    await deps.localLocationStore.updateStatus(localLocation.id, 'failed');
-  }
-  await deps.eventsReader.ack(message.messageId);
-  result.acknowledged += 1;
   result.failed += 1;
 }
