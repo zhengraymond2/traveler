@@ -11,7 +11,7 @@ import { getRecentlyAddedLocations, isProcessingLocation } from '@/features/loca
 import { getCountryRows } from '@/features/locations/saved-country-rows';
 import { useServices } from '@/services/app-services';
 
-export default function SavedLocationsScreen() {
+export default function CountriesScreen() {
   const theme = useTheme();
   const { savedLocationsReader } = useServices();
   const [locations, setLocations] = React.useState<LocationWithPhotos[]>([]);

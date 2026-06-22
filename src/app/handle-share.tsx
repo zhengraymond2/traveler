@@ -39,7 +39,7 @@ function AvailableExpoSharingScreen({ sharing }: { sharing: ExpoSharingModule })
       console.error('Traveler failed to process shared content', error);
     } finally {
       sharing.clearSharedPayloads();
-      router.replace('/(tabs)/saved');
+      router.replace('/(tabs)/countries');
     }
   }, [locationIntakeService, resolvedSharedPayloads, sharedPayloads, sharing]);
 
@@ -75,8 +75,8 @@ function MissingExpoSharingScreen() {
       <Text selectable variant="bodyMedium" style={[styles.fallbackText, { color: theme.colors.onSurfaceVariant }]}>
         Rebuild the native app after installing expo-sharing to receive content from other apps.
       </Text>
-      <Button mode="contained" onPress={() => router.replace('/(tabs)/saved')}>
-        Back to Saved
+      <Button mode="contained" onPress={() => router.replace('/(tabs)/countries')}>
+        Back to Countries
       </Button>
     </View>
   );
