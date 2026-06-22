@@ -8,6 +8,16 @@ const mockMoveToCountryCoordinate = jest.fn();
 const mockMoveToUserLocation = jest.fn();
 const mockRouterPush = jest.fn();
 
+jest.mock('@/auth', () => ({
+  useAuth: () => ({
+    user: {
+      displayName: 'Raymond Z',
+      email: 'zhray@example.com',
+      initials: 'RZ',
+    },
+  }),
+}));
+
 jest.mock('expo-router', () => {
   const React = jest.requireActual<typeof import('react')>('react');
 
@@ -84,6 +94,25 @@ describe('MapScreen', () => {
       width: 30,
       height: 30,
     });
+  });
+
+  test('opens profile from a floating avatar on the map', async () => {
+    const screen = await UITestHelper.renderWithPaper(<MapScreen />);
+    const profileButton = screen.getByLabelText('Open profile');
+    const profileButtonStyle = StyleSheet.flatten(resolvePressableStyle(profileButton.props.style));
+
+    expect(profileButtonStyle).toMatchObject({
+      position: 'absolute',
+      left: 16,
+      top: 64,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+    });
+
+    profileButton.props.onPress();
+
+    expect(mockRouterPush).toHaveBeenCalledWith('/profile');
   });
 });
 

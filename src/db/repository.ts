@@ -10,9 +10,11 @@ import {
   localLocations,
   type LocalLocation,
   localLocationSourcePhotos,
+  localLocationSourceLinks,
   type LocalLocationSourcePhoto,
   type NewLocalLocation,
   type NewLocalLocationSourcePhoto,
+  type NewLocalLocationSourceLink,
   locationPhotos,
   locations,
   type NewCollection,
@@ -22,7 +24,7 @@ import {
   type NewLocation,
   type NewLocationPhoto,
 } from './schema';
-import type { Location as CanonicalLocation } from '@/services/contracts';
+import type { LocalLocation as RemoteLocalLocation, Location as CanonicalLocation } from '@/services/contracts';
 
 export type LocationWithPhotos = Location & {
   addedAt?: Date | null;
@@ -89,6 +91,7 @@ export interface LocationReader {
 
 export interface LocationWriter {
   upsertCachedCanonicalLocations(input: CanonicalLocation[]): Promise<void>;
+  cacheRemoteLocalLocation(input: RemoteLocalLocation): Promise<void>;
   createLocation(input: CreateLocationInput): Promise<Location>;
   updateLocation(id: string, input: UpdateLocationInput): Promise<Location | null>;
   deleteLocation(id: string): Promise<void>;
@@ -281,6 +284,70 @@ function createLocationWriter(database: AppDatabase): LocationWriter {
               updatedAt: row.updatedAt,
             },
           });
+      }
+    },
+
+    async cacheRemoteLocalLocation(input) {
+      const addedAt = toDate(input.addedAt);
+      const updatedAt = toDate(input.updatedAt);
+      const row: NewLocalLocation = {
+        addedAt,
+        canonicalLocationId: input.canonicalLocationId,
+        id: input.id,
+        lastPartialLocationId: input.lastPartialLocationId,
+        privateDescription: input.privateDescription,
+        status: input.status,
+        updatedAt,
+      };
+
+      await database
+        .insert(localLocations)
+        .values(row)
+        .onConflictDoUpdate({
+          target: localLocations.id,
+          set: {
+            canonicalLocationId: row.canonicalLocationId,
+            lastPartialLocationId: row.lastPartialLocationId,
+            privateDescription: row.privateDescription,
+            status: row.status,
+            updatedAt: row.updatedAt,
+          },
+        });
+
+      if (input.sourcePhotoUris.length) {
+        await database.insert(localLocationSourcePhotos).values(
+          input.sourcePhotoUris.map<NewLocalLocationSourcePhoto>((uri, index) => ({
+            createdAt: addedAt,
+            id: `${input.id}-source-photo-${index}`,
+            localLocationId: input.id,
+            uri,
+          }))
+        ).onConflictDoUpdate({
+          target: localLocationSourcePhotos.id,
+          set: {
+            createdAt: addedAt,
+            uri: localLocationSourcePhotos.uri,
+          },
+        });
+      }
+
+      if (input.sourceLinks.length) {
+        await database.insert(localLocationSourceLinks).values(
+          input.sourceLinks.map<NewLocalLocationSourceLink>((url, index) => ({
+            createdAt: addedAt,
+            id: `${input.id}-source-link-${index}`,
+            kind: input.sourceInstagramUrls.includes(url) ? 'instagram' : 'link',
+            localLocationId: input.id,
+            url,
+          }))
+        ).onConflictDoUpdate({
+          target: localLocationSourceLinks.id,
+          set: {
+            createdAt: addedAt,
+            kind: localLocationSourceLinks.kind,
+            url: localLocationSourceLinks.url,
+          },
+        });
       }
     },
 

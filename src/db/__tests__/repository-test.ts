@@ -1,6 +1,6 @@
 import type { AppDatabase } from '../client';
 import { createLocationRepository } from '../repository';
-import { collectionLocations, collections, localLocations, localLocationSourcePhotos, locationPhotos } from '../schema';
+import { collectionLocations, collections, localLocations, localLocationSourceLinks, localLocationSourcePhotos, locationPhotos } from '../schema';
 import { DbTestHelper } from '@/test/DbTestHelper';
 
 describe('location repository', () => {
@@ -140,4 +140,83 @@ describe('location repository', () => {
       },
     ]);
   });
+
+  test('caches remote local source records with source evidence', async () => {
+    const localLocationInsert = createInsertMock();
+    const sourcePhotosInsert = createInsertMock();
+    const sourceLinksInsert = createInsertMock();
+    const database = {
+      insert(table: unknown) {
+        if (table === localLocations) {
+          return localLocationInsert;
+        }
+        if (table === localLocationSourcePhotos) {
+          return sourcePhotosInsert;
+        }
+        if (table === localLocationSourceLinks) {
+          return sourceLinksInsert;
+        }
+
+        throw new Error(`Unexpected insert table in test database: ${String(table)}`);
+      },
+    } as unknown as AppDatabase;
+    const repository = createLocationRepository(database);
+
+    await repository.writer.cacheRemoteLocalLocation({
+      addedAt: '2026-06-21T12:00:00.000Z',
+      canonicalLocationId: null,
+      id: 'local-location-1',
+      lastPartialLocationId: 'partial-1',
+      privateDescription: 'Try the evening tour.',
+      sourceInstagramUrls: ['https://instagram.com/p/source-post'],
+      sourceLinks: ['https://maps.example/great-wall', 'https://instagram.com/p/source-post'],
+      sourcePhotoUris: ['file:///source.jpg'],
+      status: 'processing',
+      updatedAt: '2026-06-21T12:01:00.000Z',
+    });
+
+    expect(localLocationInsert.values).toHaveBeenCalledWith({
+      addedAt: new Date('2026-06-21T12:00:00.000Z'),
+      canonicalLocationId: null,
+      id: 'local-location-1',
+      lastPartialLocationId: 'partial-1',
+      privateDescription: 'Try the evening tour.',
+      status: 'processing',
+      updatedAt: new Date('2026-06-21T12:01:00.000Z'),
+    });
+    expect(sourcePhotosInsert.values).toHaveBeenCalledWith([
+      {
+        createdAt: new Date('2026-06-21T12:00:00.000Z'),
+        id: 'local-location-1-source-photo-0',
+        localLocationId: 'local-location-1',
+        uri: 'file:///source.jpg',
+      },
+    ]);
+    expect(sourceLinksInsert.values).toHaveBeenCalledWith([
+      {
+        createdAt: new Date('2026-06-21T12:00:00.000Z'),
+        id: 'local-location-1-source-link-0',
+        kind: 'link',
+        localLocationId: 'local-location-1',
+        url: 'https://maps.example/great-wall',
+      },
+      {
+        createdAt: new Date('2026-06-21T12:00:00.000Z'),
+        id: 'local-location-1-source-link-1',
+        kind: 'instagram',
+        localLocationId: 'local-location-1',
+        url: 'https://instagram.com/p/source-post',
+      },
+    ]);
+  });
 });
+
+function createInsertMock() {
+  const chain = {
+    values: jest.fn(),
+    onConflictDoUpdate: jest.fn(),
+  };
+  chain.values.mockReturnValue(chain);
+  chain.onConflictDoUpdate.mockResolvedValue(undefined);
+  return chain;
+}

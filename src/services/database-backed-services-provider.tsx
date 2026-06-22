@@ -12,13 +12,26 @@ export function DatabaseBackedServicesProvider({ children }: React.PropsWithChil
     const apiClient = new LocationApiClient({
       baseUrl: getDefaultApiBaseUrl(),
     });
-
-    return createAppServices({
+    const services = createAppServices({
       savedLocationsReader: createSyncedSavedLocationsReader({
         canonicalLocationsClient: apiClient,
         localCache: createRepositorySavedLocationsLocalCache(repository),
       }),
     });
+
+    return {
+      ...services,
+      locationIntakeService: {
+        async addSource(input) {
+          const result = await services.locationIntakeService.addSource(input);
+          if (result.matchedLocations.length) {
+            await repository.writer.upsertCachedCanonicalLocations(result.matchedLocations);
+          }
+          await repository.writer.cacheRemoteLocalLocation(result.localLocation);
+          return result;
+        },
+      },
+    };
   }, [repository]);
 
   return <ServicesProvider services={services}>{children}</ServicesProvider>;
