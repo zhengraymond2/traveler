@@ -39,25 +39,30 @@ export function createLocationRecognitionLambdaHandler(
     const batchItemFailures: { itemIdentifier: string }[] = [];
     let deps: LambdaWorkerDeps | null = null;
 
-    for (const record of event.Records ?? []) {
-      const messageId = record.messageId ?? 'unknown-message';
-      const parsed = parseRecord(record.body);
+    for (const [index, record] of (event.Records ?? []).entries()) {
+      const messageId = getItemIdentifier(record.messageId, index);
 
-      if (!parsed) {
-        batchItemFailures.push({ itemIdentifier: messageId });
-        continue;
-      }
+      try {
+        const parsed = parseRecord(record.body);
 
-      deps = deps ?? (await createDeps());
+        if (!parsed) {
+          batchItemFailures.push({ itemIdentifier: messageId });
+          continue;
+        }
 
-      const result = await processQueuedPartialLocation(deps, {
-        event: parsed,
-        messageId,
-        receiveCount: 1,
-        receivedAt: new Date().toISOString(),
-      } satisfies QueuedPartialLocation);
+        deps = deps ?? (await createDeps());
 
-      if (result.outcome === 'retry') {
+        const result = await processQueuedPartialLocation(deps, {
+          event: parsed,
+          messageId,
+          receiveCount: 1,
+          receivedAt: new Date().toISOString(),
+        } satisfies QueuedPartialLocation);
+
+        if (result.outcome === 'retry') {
+          batchItemFailures.push({ itemIdentifier: messageId });
+        }
+      } catch {
         batchItemFailures.push({ itemIdentifier: messageId });
       }
     }
@@ -78,4 +83,12 @@ function parseRecord(body: string | undefined): PartialLocation | null {
   } catch {
     return null;
   }
+}
+
+function getItemIdentifier(messageId: string | undefined, index: number): string {
+  if (messageId && messageId.length > 0) {
+    return messageId;
+  }
+
+  return `record-${index}`;
 }
