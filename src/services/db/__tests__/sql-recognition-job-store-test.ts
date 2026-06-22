@@ -34,22 +34,30 @@ describe('SqlRecognitionJobStore', () => {
     expect(sqlLocationDirectorySchemaStatements.join('\n')).toContain('partial_location_id text primary key');
   });
 
-  test('creates a processing recognition job', async () => {
+  test('creates a processing recognition job with store timestamps and conflict reset', async () => {
     const database = new RecordingDatabase();
     const store = new SqlRecognitionJobStore(database, {
       now: () => new Date('2026-06-22T12:00:00.000Z'),
     });
 
     await store.createProcessing({
-      createdAt: '2026-06-22T12:00:00.000Z',
+      createdAt: '2024-01-01T00:00:00.000Z',
       id: 'partial-1',
       name: 'Great Wall of China',
     });
 
     expect(database.statements[0].sql).toContain('insert into recognition_jobs');
+    expect(database.statements[0].sql).toContain('on conflict (partial_location_id) do update');
+    expect(database.statements[0].sql).toContain('status = excluded.status');
+    expect(database.statements[0].sql).toContain('canonical_location_id = null');
+    expect(database.statements[0].sql).toContain('failure_reason = null');
+    expect(database.statements[0].sql).toContain('recognized_location_json = null');
+    expect(database.statements[0].sql).toContain('updated_at = excluded.updated_at');
     expect(database.statements[0].parameters).toMatchObject({
+      createdAt: '2026-06-22T12:00:00.000Z',
       partialLocationId: 'partial-1',
       status: 'processing',
+      updatedAt: '2026-06-22T12:00:00.000Z',
     });
   });
 

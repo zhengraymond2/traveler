@@ -42,9 +42,16 @@ export class SqlRecognitionJobStore implements RecognitionJobStore {
           cast(:createdAt as timestamptz),
           cast(:updatedAt as timestamptz)
         )
+        on conflict (partial_location_id) do update
+        set
+          status = excluded.status,
+          canonical_location_id = null,
+          failure_reason = null,
+          recognized_location_json = null,
+          updated_at = excluded.updated_at
       `,
       parameters: {
-        createdAt: partialLocation.createdAt,
+        createdAt: now,
         partialLocationId: partialLocation.id,
         status: 'processing',
         updatedAt: now,
