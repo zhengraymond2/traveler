@@ -76,6 +76,39 @@ describe('location intake service', () => {
     expect(eventsStore.serializedEvents).toEqual([JSON.stringify(result.emittedEvent)]);
   });
 
+  test('creates a processing recognition job before enqueueing unmatched sources', async () => {
+    const calls: string[] = [];
+    const service = createLocationIntakeService({
+      createId: () => 'partial-1',
+      eventsWriter: {
+        async enqueuePartialLocation() {
+          calls.push('enqueue');
+        },
+      },
+      localLocationStore: new LocalLocalLocationStore(),
+      locationDirectory: new LocalLocationDirectory(),
+      now: () => new Date('2026-06-22T12:00:00.000Z'),
+      recognitionJobStore: {
+        async createProcessing(partialLocation) {
+          calls.push(`processing:${partialLocation.id}`);
+        },
+        async markFailed() {
+          throw new Error('markFailed should not be called by intake.');
+        },
+        async markMatched() {
+          throw new Error('markMatched should not be called by intake.');
+        },
+        async markNeedsReview() {
+          throw new Error('markNeedsReview should not be called by intake.');
+        },
+      },
+    });
+
+    await service.addSource({ name: 'Unmatched Place' });
+
+    expect(calls).toEqual(['processing:partial-1', 'enqueue']);
+  });
+
   test('duplicate local source appends new photos and links to one local record', async () => {
     const localLocationStore = new LocalLocalLocationStore();
     const service = createLocationIntakeService({

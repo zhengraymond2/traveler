@@ -5,6 +5,7 @@ import type {
   LocalLocationStore,
   LocationDirectory,
   PartialLocation,
+  RecognitionJobStore,
 } from '@/services/contracts';
 import { assertValidPartialLocation } from '@/services/contracts';
 
@@ -18,6 +19,7 @@ export type LocationIntakeServiceDeps = {
   locationDirectory: LocationDirectory;
   localLocationStore: LocalLocationStore;
   now?: () => Date;
+  recognitionJobStore?: RecognitionJobStore;
 };
 
 export function createLocationIntakeService(deps: LocationIntakeServiceDeps): LocationIntakeService {
@@ -54,6 +56,7 @@ export function createLocationIntakeService(deps: LocationIntakeServiceDeps): Lo
         source: input,
         status: 'processing',
       });
+      await deps.recognitionJobStore?.createProcessing(partialLocation);
       await deps.eventsWriter.enqueuePartialLocation(partialLocation);
 
       return {
