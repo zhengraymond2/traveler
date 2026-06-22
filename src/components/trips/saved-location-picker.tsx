@@ -66,7 +66,9 @@ export function SavedLocationPicker({
           {filteredLocations.map((location) => (
             <Pressable
               key={location.id}
+              accessibilityLabel={location.name ?? 'Saved location'}
               accessibilityRole="button"
+              testID={`saved-location-result-${location.id}`}
               style={styles.resultRow}
               onPress={() => onSelect(location)}>
               <Text selectable={false} variant="bodyMedium" style={styles.resultText}>
