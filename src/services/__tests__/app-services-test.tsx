@@ -88,5 +88,11 @@ function createFakeServices(): AppServices {
     locationIntakeService: {
       addSource: jest.fn(),
     },
+    savedLocationsReader: {
+      getLocation: jest.fn(),
+      listLocationsWithPhotos: jest.fn(),
+      listLocationsWithPhotosByCountry: jest.fn(),
+      listLocationsWithoutCountryWithPhotos: jest.fn(),
+    },
   };
 }

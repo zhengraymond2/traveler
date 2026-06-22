@@ -46,8 +46,12 @@ jest.mock('@/components/world-map', () => {
 });
 
 jest.mock('@/db/database-provider', () => ({
-  useDatabase: () => ({
-    reader: {
+  useDatabase: () => ({}),
+}));
+
+jest.mock('@/services/app-services', () => ({
+  useServices: () => ({
+    savedLocationsReader: {
       listLocationsWithPhotos: (...args: unknown[]) => mockListLocationsWithPhotos(...args),
     },
   }),

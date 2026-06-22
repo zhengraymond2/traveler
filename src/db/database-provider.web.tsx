@@ -4,6 +4,9 @@ import type { LocationRepository } from './repository';
 
 const webRepository: LocationRepository = {
   reader: {
+    async listSavedCanonicalLocationIds() {
+      return [];
+    },
     async listLocations() {
       return [];
     },
@@ -42,6 +45,9 @@ const webRepository: LocationRepository = {
     },
   },
   writer: {
+    async upsertCachedCanonicalLocations() {
+      return undefined;
+    },
     async createLocation() {
       throw new Error('Database writes are only configured for native builds.');
     },

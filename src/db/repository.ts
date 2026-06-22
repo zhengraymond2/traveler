@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, ne, or } from 'drizzle-orm';
+import { and, asc, desc, eq, ne } from 'drizzle-orm';
 
 import type { AppDatabase } from './client';
 import { dedupeLocationRecord } from './dedupe-locations';
@@ -7,6 +7,12 @@ import {
   collections,
   type Collection,
   type CollectionKind,
+  localLocations,
+  type LocalLocation,
+  localLocationSourcePhotos,
+  type LocalLocationSourcePhoto,
+  type NewLocalLocation,
+  type NewLocalLocationSourcePhoto,
   locationPhotos,
   locations,
   type NewCollection,
@@ -16,8 +22,12 @@ import {
   type NewLocation,
   type NewLocationPhoto,
 } from './schema';
+import type { Location as CanonicalLocation } from '@/services/contracts';
 
 export type LocationWithPhotos = Location & {
+  addedAt?: Date | null;
+  localLocationId?: string | null;
+  localStatus?: string | null;
   photos: LocationPhoto[];
 };
 
@@ -62,6 +72,7 @@ export type DuplicateCollectionInput = {
 };
 
 export interface LocationReader {
+  listSavedCanonicalLocationIds(): Promise<string[]>;
   listLocations(): Promise<Location[]>;
   listLocationsWithPhotos(): Promise<LocationWithPhotos[]>;
   listLocationsByCountry(country: string): Promise<Location[]>;
@@ -77,6 +88,7 @@ export interface LocationReader {
 }
 
 export interface LocationWriter {
+  upsertCachedCanonicalLocations(input: CanonicalLocation[]): Promise<void>;
   createLocation(input: CreateLocationInput): Promise<Location>;
   updateLocation(id: string, input: UpdateLocationInput): Promise<Location | null>;
   deleteLocation(id: string): Promise<void>;
@@ -105,49 +117,47 @@ export function createLocationRepository(database: AppDatabase): LocationReposit
 
 function createLocationReader(database: AppDatabase): LocationReader {
   const reader: LocationReader = {
+    async listSavedCanonicalLocationIds() {
+      const rows = await database.select({ canonicalLocationId: localLocations.canonicalLocationId }).from(localLocations);
+      return Array.from(
+        new Set(
+          rows
+            .map((row) => row.canonicalLocationId)
+            .filter((id): id is string => Boolean(id))
+        )
+      );
+    },
+
     async listLocations() {
-      return database.select().from(locations).orderBy(desc(locations.createdAt));
+      return (await reader.listLocationsWithPhotos()).map(({ photos: _photos, ...location }) => location);
     },
 
     async listLocationsWithPhotos() {
-      const savedLocations = await reader.listLocations();
-      return withPhotos(savedLocations, reader.listPhotosForLocation);
+      return listLocalSavedLocationsWithPhotos(database, reader.listPhotosForLocation);
     },
 
     async listLocationsByCountry(country) {
-      return database
-        .select()
-        .from(locations)
-        .where(eq(locations.country, country))
-        .orderBy(asc(locations.name), desc(locations.createdAt));
+      return (await reader.listLocationsWithPhotosByCountry(country)).map(({ photos: _photos, ...location }) => location);
     },
 
     async listLocationsWithPhotosByCountry(country) {
-      const savedLocations = await reader.listLocationsByCountry(country);
-      return withPhotos(savedLocations, reader.listPhotosForLocation);
+      return (await reader.listLocationsWithPhotos()).filter((location) => location.country === country);
     },
 
     async listLocationsWithoutCountry() {
-      return database
-        .select()
-        .from(locations)
-        .where(or(isNull(locations.country), eq(locations.country, '')))
-        .orderBy(asc(locations.name), desc(locations.createdAt));
+      return (await reader.listLocationsWithoutCountryWithPhotos()).map(({ photos: _photos, ...location }) => location);
     },
 
     async listLocationsWithoutCountryWithPhotos() {
-      const savedLocations = await reader.listLocationsWithoutCountry();
-      return withPhotos(savedLocations, reader.listPhotosForLocation);
+      return (await reader.listLocationsWithPhotos()).filter((location) => !location.country);
     },
 
     async getLocation(id) {
-      const [location] = await database.select().from(locations).where(eq(locations.id, id)).limit(1);
-      if (!location) {
-        return null;
-      }
-
-      const photos = await reader.listPhotosForLocation(id);
-      return { ...location, photos };
+      return (
+        (await reader.listLocationsWithPhotos()).find(
+          (location) => location.id === id || location.localLocationId === id
+        ) ?? null
+      );
     },
 
     async listPhotosForLocation(locationId) {
@@ -232,6 +242,48 @@ async function withCollectionLocations(
 
 function createLocationWriter(database: AppDatabase): LocationWriter {
   return {
+    async upsertCachedCanonicalLocations(input) {
+      if (!input.length) {
+        return;
+      }
+
+      const rows = input.map<NewLocation>((location) => ({
+        category: null,
+        country: null,
+        createdAt: toDate(location.createdAt),
+        fieldConfidenceJson: location.fieldConfidenceJson,
+        googleMapsUrl: location.googleMapsUrl,
+        id: location.id,
+        instagramFeedUrl: location.instagramFeedUrl,
+        instagramUrl: null,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        name: location.name,
+        notes: null,
+        trailMapUrl: location.allTrailsUrl,
+        updatedAt: toDate(location.updatedAt),
+      }));
+
+      for (const row of rows) {
+        await database
+          .insert(locations)
+          .values(row)
+          .onConflictDoUpdate({
+            target: locations.id,
+            set: {
+              fieldConfidenceJson: row.fieldConfidenceJson,
+              googleMapsUrl: row.googleMapsUrl,
+              instagramFeedUrl: row.instagramFeedUrl,
+              latitude: row.latitude,
+              longitude: row.longitude,
+              name: row.name,
+              trailMapUrl: row.trailMapUrl,
+              updatedAt: row.updatedAt,
+            },
+          });
+      }
+    },
+
     async createLocation(input) {
       const now = new Date();
       const location: NewLocation = {
@@ -251,6 +303,17 @@ function createLocationWriter(database: AppDatabase): LocationWriter {
 
       await database.insert(locations).values(location);
 
+      const localLocation: NewLocalLocation = {
+        addedAt: now,
+        canonicalLocationId: location.id,
+        id: createLocalId(),
+        lastPartialLocationId: null,
+        privateDescription: normalizeText(input.notes),
+        status: 'matched',
+        updatedAt: now,
+      };
+      await database.insert(localLocations).values(localLocation);
+
       if (input.photos?.length) {
         const photos = input.photos.map<NewLocationPhoto>((photo) => ({
           id: createLocalId(),
@@ -260,6 +323,14 @@ function createLocationWriter(database: AppDatabase): LocationWriter {
           createdAt: now,
         }));
         await database.insert(locationPhotos).values(photos);
+        await database.insert(localLocationSourcePhotos).values(
+          input.photos.map<NewLocalLocationSourcePhoto>((photo) => ({
+            createdAt: now,
+            id: createLocalId(),
+            localLocationId: localLocation.id,
+            uri: photo.uri,
+          }))
+        );
       }
 
       const [createdLocation] = await database
@@ -438,6 +509,79 @@ function createLocationWriter(database: AppDatabase): LocationWriter {
   };
 }
 
+async function listLocalSavedLocationsWithPhotos(
+  database: AppDatabase,
+  listPhotosForLocation: (locationId: string) => Promise<LocationPhoto[]>
+): Promise<LocationWithPhotos[]> {
+  const rows = await database
+    .select({ localLocation: localLocations, location: locations })
+    .from(localLocations)
+    .leftJoin(locations, eq(localLocations.canonicalLocationId, locations.id))
+    .orderBy(desc(localLocations.addedAt));
+
+  return Promise.all(
+    rows.map(async ({ localLocation, location }) =>
+      toLocationWithPhotos(
+        localLocation,
+        location,
+        await listLocalSourcePhotos(database, localLocation.id, location?.id ?? localLocation.canonicalLocationId ?? localLocation.id),
+        location ? await listPhotosForLocation(location.id) : []
+      )
+    )
+  );
+}
+
+async function listLocalSourcePhotos(database: AppDatabase, localLocationId: string, locationId: string): Promise<LocationPhoto[]> {
+  const sourcePhotos = await database
+    .select()
+    .from(localLocationSourcePhotos)
+    .where(eq(localLocationSourcePhotos.localLocationId, localLocationId))
+    .orderBy(asc(localLocationSourcePhotos.createdAt));
+
+  return sourcePhotos.map((photo) => toLocationPhoto(photo, locationId));
+}
+
+function toLocationWithPhotos(
+  localLocation: LocalLocation,
+  location: Location | null,
+  sourcePhotos: LocationPhoto[],
+  legacyPhotos: LocationPhoto[]
+): LocationWithPhotos {
+  const id = location?.id ?? localLocation.canonicalLocationId ?? localLocation.id;
+  const now = new Date(0);
+
+  return {
+    id,
+    name: location?.name ?? null,
+    latitude: location?.latitude ?? null,
+    longitude: location?.longitude ?? null,
+    googleMapsUrl: location?.googleMapsUrl ?? null,
+    instagramUrl: location?.instagramUrl ?? null,
+    instagramFeedUrl: location?.instagramFeedUrl ?? null,
+    trailMapUrl: location?.trailMapUrl ?? null,
+    fieldConfidenceJson: location?.fieldConfidenceJson ?? null,
+    notes: localLocation.privateDescription ?? location?.notes ?? null,
+    country: location?.country ?? null,
+    category: location?.category ?? null,
+    createdAt: location?.createdAt ?? localLocation.addedAt ?? now,
+    updatedAt: location?.updatedAt ?? localLocation.updatedAt ?? now,
+    addedAt: localLocation.addedAt,
+    localLocationId: localLocation.id,
+    localStatus: localLocation.status,
+    photos: sourcePhotos.length ? sourcePhotos : legacyPhotos,
+  };
+}
+
+function toLocationPhoto(photo: LocalLocationSourcePhoto, locationId: string): LocationPhoto {
+  return {
+    caption: null,
+    createdAt: photo.createdAt,
+    id: photo.id,
+    locationId,
+    uri: photo.uri,
+  };
+}
+
 function normalizeLocationUpdate(input: UpdateLocationInput) {
   const update: Partial<NewLocation> = {};
 
@@ -484,6 +628,10 @@ function normalizeCollectionTitle(value: string) {
   }
 
   return normalized;
+}
+
+function toDate(value: string) {
+  return new Date(value);
 }
 
 async function touchCollection(database: AppDatabase, id: string) {

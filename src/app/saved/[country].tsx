@@ -13,6 +13,7 @@ import { PulsingView } from '@/components/pulsing-view';
 import { AppColors } from '@/constants/theme';
 import { useDatabase } from '@/db/database-provider';
 import type { LocationWithPhotos } from '@/db/repository';
+import { useServices } from '@/services/app-services';
 
 const unknownCountryLabel = 'Unknown';
 const rowHeight = 130;
@@ -23,7 +24,8 @@ const topContentPadding = 16;
 export default function SavedCountryScreen() {
   const theme = useTheme();
   const { width: windowWidth } = useWindowDimensions();
-  const { reader, writer } = useDatabase();
+  const { writer } = useDatabase();
+  const { savedLocationsReader } = useServices();
   const params = useLocalSearchParams<{ country?: string }>();
   const country = normalizeParam(params.country);
   const [locations, setLocations] = React.useState<LocationWithPhotos[]>([]);
@@ -81,9 +83,9 @@ export default function SavedCountryScreen() {
     try {
       const savedLocations =
         country === unknownCountryLabel
-          ? await reader.listLocationsWithoutCountryWithPhotos()
+          ? await savedLocationsReader.listLocationsWithoutCountryWithPhotos()
           : country
-            ? await reader.listLocationsWithPhotosByCountry(country)
+            ? await savedLocationsReader.listLocationsWithPhotosByCountry(country)
             : [];
       setLocations(savedLocations);
     } catch (error) {
@@ -91,7 +93,7 @@ export default function SavedCountryScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [country, reader]);
+  }, [country, savedLocationsReader]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -104,9 +106,9 @@ export default function SavedCountryScreen() {
         try {
           const savedLocations =
             country === unknownCountryLabel
-              ? await reader.listLocationsWithoutCountryWithPhotos()
+              ? await savedLocationsReader.listLocationsWithoutCountryWithPhotos()
               : country
-                ? await reader.listLocationsWithPhotosByCountry(country)
+                ? await savedLocationsReader.listLocationsWithPhotosByCountry(country)
                 : [];
           if (isActive) {
             setLocations(savedLocations);
@@ -127,7 +129,7 @@ export default function SavedCountryScreen() {
       return () => {
         isActive = false;
       };
-    }, [country, reader])
+    }, [country, savedLocationsReader])
   );
 
   async function handleDeleteSelected() {

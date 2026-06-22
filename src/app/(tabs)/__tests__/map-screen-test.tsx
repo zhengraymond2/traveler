@@ -25,8 +25,12 @@ jest.mock('expo-router', () => {
 });
 
 jest.mock('@/db/database-provider', () => ({
-  useDatabase: () => ({
-    reader: {
+  useDatabase: () => ({}),
+}));
+
+jest.mock('@/services/app-services', () => ({
+  useServices: () => ({
+    savedLocationsReader: {
       listLocationsWithPhotos: mockListLocationsWithPhotos,
     },
   }),
